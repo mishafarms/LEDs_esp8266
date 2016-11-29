@@ -20,10 +20,15 @@ Leds::Leds()
     stringCom["Shuffle"] = &Leds::shuffle;
     stringCom["End"] = &Leds::colorUp;
 
+    // initial config stuff
+
+    startTime = FIVE_PM * MINUTES_PER_HOUR;    // by default on at 5pm
+    stopTime = ONE_AM * MINUTES_PER_HOUR;      // by default off at 1am
+    
     currentHue = CHSV(HUE_BLUE, 240, 255);
     
     hueCycleTime = 20; // this is milliseconds
-    patCycleTime = 300; // this is in seconds
+    patCycleTime = 60; // this is in seconds
 
     // set to cycle through the patterns
     
@@ -107,6 +112,26 @@ bool Leds::setMode(enum Modes newMode)
   }
 
   mode = newMode;
+}
+
+void Leds::setStartTime(int newTime)
+{
+  startTime = newTime;
+}
+
+int Leds::getStartTime(void)
+{
+  return startTime;
+}
+
+void Leds::setStopTime(int newTime)
+{
+  stopTime = newTime;
+}
+
+int Leds::getStopTime(void)
+{
+  return stopTime;
 }
 
   /**@brief Function for doing something with the leds when we connect.
@@ -366,7 +391,7 @@ bool Leds::setMode(enum Modes newMode)
   void Leds::chase(void)
   {
     // simple single led chase
-    static uint8_t pos = 0;
+    static int pos = 0;
 
     fill_solid(leds, NUM_LEDS, CRGB::Black);
     leds[pos] = currentRgb;
@@ -629,8 +654,26 @@ bool Leds::setMode(enum Modes newMode)
    * @param[in] void
    */
 
-  void Leds::loop(void)
+  void Leds::loop(int nowTime)
   {
+    // only if there are non-negative non-matching times
+    if ((startTime >= 0) && (stopTime >= 0) && (startTime != stopTime))
+    {
+      if ((nowTime == startTime) && !running) 
+      {
+        play();
+      }
+      else if ((nowTime == stopTime) && running)
+      {
+        stop();     
+      }
+    }
+
+    if (!running)
+    {
+      return;  
+    }
+    
     switch(mode)
     {
       case PATTERN_MODE:

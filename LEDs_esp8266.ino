@@ -5,18 +5,37 @@
  *      Author: mlw
  */
 
+#include <NTPClient.h>
+#include <ESP8266WiFi.h>
+#include <WiFiUdp.h>
 
 #include <ESP8266WebServer.h>
+#include <FS.h>
 #include "Leds.h"
 
 int timeHour = 0;
 int off = 0;
 
+WiFiUDP ntpUDP;
+
+// By default 'time.nist.gov' is used with 60 seconds update interval and
+// no offset
+// we are PST so -8 hours
+
+NTPClient timeClient(-8 * 3600);
+
 extern ESP8266WebServer server;
 
-class Leds myLeds;
+// we now use a pointer to try to get the config info before we construct.
+
+class Leds *myLeds;
 
 extern void FSBsetup(void);
+
+void ledsOff()
+{
+  myLeds->stop();
+}
 
 void handleLedPattern(void) {
   String output = "[";
@@ -26,7 +45,7 @@ void handleLedPattern(void) {
   {
     // try to set the pattern to the new value
   
-     if (myLeds.setPattern(patName) != true)
+     if (myLeds->setPattern(patName) != true)
      {
         server.send(404, "text/plain", "Pattern " + patName + " not found");
      }
@@ -38,7 +57,7 @@ void handleLedPattern(void) {
   else
   {
     output += "{\"pattern\":\"";
-    output += myLeds.pattern();
+    output += myLeds->pattern();
     output += "\"}";
     
     output += "]";
@@ -90,19 +109,19 @@ void handleLedMode(void) {
 
     if (mode == "Stop")
     {
-      myLeds.setMode(STOP_MODE);
+      myLeds->setMode(STOP_MODE);
     }
     else if (mode == "Pattern")
     {
-      myLeds.setMode(PATTERN_MODE);
+      myLeds->setMode(PATTERN_MODE);
     }
     else if (mode == "Pattern_Cycle")
     {
-      myLeds.setMode(PATTERN_CYCLE_MODE);
+      myLeds->setMode(PATTERN_CYCLE_MODE);
     }
     else if (mode == "Color")
     {
-      myLeds.setMode(COLOR_MODE);
+      myLeds->setMode(COLOR_MODE);
     }
     else
     {
@@ -147,8 +166,7 @@ void handleLedColor(void) {
       newColor.red = convertHex(colorStr + 1);
       newColor.green = convertHex(colorStr + 3);
       newColor.blue = convertHex(colorStr + 5);
-      myLeds.setColor(newColor);
-      myLeds.simpleColor();
+      myLeds->setColor(newColor);
 
       server.send(200, "text/plain", "Led color set");
     }
@@ -165,7 +183,7 @@ void handleLedColor(void) {
     String output = "[";
 
     char tmpBuf[30];
-    CRGB color = myLeds.color();
+    CRGB color = myLeds->color();
     sprintf(tmpBuf, "#%02x%02x%02x", color.red, color.green, color.blue);
   
     output += "\"color\":\"";
@@ -174,6 +192,87 @@ void handleLedColor(void) {
 
     output += "]";
     server.send(200, "text/json", output);
+  }
+}
+
+
+void handleLedStartTime(void) {
+  String newTime = server.arg("startTime");
+  
+  if (newTime != "")
+  {
+    String hour;
+    String minutes;
+    int index = newTime.indexOf(':');
+
+    if (index != 2)
+    {
+      // bad format
+      server.send(400, "text/plain", "Bad format for Start Time");
+    }
+
+    // format should be hh:mm
+    
+    hour = newTime.substring(0,index);
+    minutes = newTime.substring(index + 1);
+    
+    myLeds->setStartTime( hour.toInt() * 60 + minutes.toInt());
+    server.send(200, "text/plain", "Start Time set");
+  }
+  else
+  {
+    // they want to know the start time
+  }
+}
+
+void handleLedStopTime(void) {
+  String newTime = server.arg("stopTime");
+  
+  if (newTime != "")
+  {
+    String hour;
+    String minutes;
+    int index = newTime.indexOf(':');
+
+    if (index != 2)
+    {
+      // bad format
+      server.send(400, "text/plain", "Bad format for Stop Time");
+    }
+
+    // format should be hh:mm
+    
+    hour = newTime.substring(0,index);
+    minutes = newTime.substring(index + 1);
+    
+    myLeds->setStopTime( hour.toInt() * 60 + minutes.toInt());
+    server.send(200, "text/plain", "Stop Time set");
+  }
+  else
+  {
+    // they want to know the stop time
+  }
+}
+
+void handleLedRunning(void) {
+  String newStatus = server.arg("running");
+  
+  if (newStatus != "")
+  {
+    if (newStatus == "true")
+    {
+      myLeds->play();
+      server.send(200, "text/plain", "Set running to true");
+    }
+    else if (newStatus == "false")
+    {
+      myLeds->stop();
+      server.send(200, "text/plain", "Set running to false");
+    }
+  }
+  else
+  {
+    // they want to know the stop time
   }
 }
 
@@ -193,6 +292,21 @@ void handleLedGet(void) {
     Serial.println("Got mode");
     handleLedMode();
   }
+  else if (server.hasArg("startTime"))
+  {
+    Serial.println("Got startTime");
+    handleLedStartTime();
+  }
+  else if (server.hasArg("stopTime"))
+  {
+    Serial.println("Got stopTime");
+    handleLedStopTime();
+  }
+  else if (server.hasArg("running"))
+  {
+    Serial.println("Got running");
+    handleLedRunning();
+  }
   else
   {
     Serial.println("Got unknown");
@@ -205,7 +319,7 @@ void handleLedPut(void) {
 
 void handleLedPatternsGet() {
   String output = "{\"Patterns\":[";
-  std::vector <String> patterns = myLeds.getPatterns();
+  std::vector <String> patterns = myLeds->getPatterns();
   std::vector <String>::iterator pattern = patterns.begin();
 
   while(pattern != patterns.end())
@@ -231,42 +345,78 @@ void handleLedStatusGet() {
 
   // running status
   output += "\"running\":\"";
-  output += myLeds.isRunning() ? "true" : "false";
+  output += myLeds->isRunning() ? "true" : "false";
   output += "\",";
 
   // mode
   output += "\"mode\":\"";
-  output += myLeds.getMode();
+  output += myLeds->getMode();
   output += "\",";
 
   // color
 
   char tmpBuf[30];
-  CRGB color = myLeds.color();
+  CRGB color = myLeds->color();
   sprintf(tmpBuf, "#%02x%02x%02x", color.red, color.green, color.blue);
   
   output += "\"color\":\"";
   output += String(tmpBuf);
-  output += "\",";  
+  output += "\"";  
   
   // pattern
   
-  output += "\"pattern\":\"";
-  output += myLeds.pattern();
+  output += ",\"pattern\":\"";
+  output += myLeds->pattern();
   output += "\"";
 
+  // time
+  output += ",\"time\":\"";
+  output += timeClient.getFormattedTime();
+  output += "\"";
+  
   output += "}";
   server.send(200, "text/json", output);
 }
 
+void handleTimesGet(void)
+{
+  String output = "{";
+  char buf[20];
+  
+  // start time
+  output += "\"startTime\":\"";
+  sprintf(buf, "%02d:%02d", myLeds->getStartTime() / 60, myLeds->getStartTime() % 60);
+  output += String(buf);
+  output += "\"";
+  
+  // stop time
+  output += ",\"stopTime\":\"";
+  sprintf(buf, "%02d:%02d", myLeds->getStopTime() / 60, myLeds->getStopTime() % 60);
+  output += String(buf);
+  output += "\"";
+  
+  output += "}";
+  server.send(200, "text/json", output);   
+}
+
 void setup() {
+
+  // setup the SPIFFS first so we can read our config file 
+  
+  SPIFFS.begin(); 
+
+  // we need a way to pass the config into the LED constructor
+  
+  myLeds = new Leds();
+  
   // setup the LED page
   server.on("/leds", HTTP_GET, handleLedGet);
   server.on("/leds", HTTP_PUT, handleLedPut);
   server.on("/leds/status", HTTP_GET, handleLedStatusGet);
   server.on("/leds/color", handleLedColor);
   server.on("/leds/patterns", HTTP_GET, handleLedPatternsGet);
-
+  server.on("/leds/times", HTTP_GET, handleTimesGet);
+  
 #if 0
    //get heap status, analog input value and all GPIO statuses in one json call
   server.on("/all", HTTP_GET, [](){
@@ -280,53 +430,21 @@ void setup() {
 #endif
   /* call the browser setup first */
 
+  myLeds->ledTest();
   FSBsetup();
-  myLeds.ledTest();
 }
-
-#define FIVE_PM 17
-#define ONE_AM 1
 
 extern void FSBloop(void);
 
 void loop()
 {
-  // look at what hour it is and turn on the lights at 16 and off at 1
-#if 0
+  // make sure we deal with the time
+  
+  timeClient.update();
 
-  timeHour = Time.hour() - 8;
+  // we are only going to use minutes to control things so get the minutes since 12:00
 
-  if (timeHour < 0)
-  {
-    timeHour += 24;
-  }
-
-  if ((timeHour >= ONE_AM) && (timeHour < FIVE_PM))
-  {
-    if (!off)
-    {
-
-      // clear the Leds and show them once
-
-      for (int x = 0; x < NUM_LEDS ; x++)
-      {
-        leds[x] = CRGB::Black;
-        FastLED.show();
-        off = 1;
-      }
-
-      FastLED.delay(1000);
-    }
-  }
-  else
-  {
-    off = 0;
-
-    myLeds.loop();
-  }
-#else
-    myLeds.loop();
-#endif
+  myLeds->loop( (timeClient.getRawTime() % 86400L) / 60);
 
   FSBloop();
 

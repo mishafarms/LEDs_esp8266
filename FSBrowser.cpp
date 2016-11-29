@@ -23,20 +23,22 @@
   edit the page by going to http://esp8266fs.local/edit
 */
 #include <ESP8266WiFi.h>
+#include <ESP8266WiFiMulti.h>
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
 #include <FS.h>
 
+extern void ledsOff(void);
+
 #define DBG_OUTPUT_PORT Serial
 
-const char* ssid = "Mishafarms";
-const char* password = "deadbeef01";
-//const char* host = "esp8266fs";
+ESP8266WiFiMulti wifiMulti;
 
 char host[30];
 
 ESP8266WebServer server(80);
+
 //holds the current upload
 File fsUploadFile;
 
@@ -162,6 +164,14 @@ void handleFileList() {
   server.send(200, "text/json", output);
 }
 
+void handleSsidGet(void)
+{
+  String output = "{\"SSID\":\"";
+  output += WiFi.SSID();
+  output += "\"}";
+  server.send(200, "text/json", output);
+}
+
 const char* updateIndex = "<form method='POST' action='/update' enctype='multipart/form-data'><input type='file'"
                           "name='update'><input type='submit' value='Update'></form>";
 
@@ -169,7 +179,8 @@ void FSBsetup(void){
   DBG_OUTPUT_PORT.begin(115200);
   DBG_OUTPUT_PORT.print("\n");
   DBG_OUTPUT_PORT.setDebugOutput(true);
-  SPIFFS.begin();
+  
+  //SPIFFS.begin(); 
   {
     Dir dir = SPIFFS.openDir("/");
     DBG_OUTPUT_PORT.printf("about to read dir\n");
@@ -182,18 +193,24 @@ void FSBsetup(void){
   }
   
 
-  //WIFI INIT
-  DBG_OUTPUT_PORT.printf("Connecting to %s\n", ssid);
-  if (String(WiFi.SSID()) != String(ssid)) {
-    WiFi.begin(ssid, password);
-  }
+  wifiMulti.addAP("Mishafarms", "deadbeef01");
+  wifiMulti.addAP("Misha-Farms-n", "deadbeef01");
+  wifiMulti.addAP("Misha-Farms-5g", "deadbeef01");
+  wifiMulti.addAP("Mishafarms-Airport", "m0llysha");
+  wifiMulti.addAP("Mishafarms-5G", "deadbeef01");
   
-  while (WiFi.status() != WL_CONNECTED) {
+  //WIFI INIT
+
+  Serial.println("Connecting Wifi...");
+  
+  while(wifiMulti.run() != WL_CONNECTED) {
     delay(500);
     DBG_OUTPUT_PORT.print(".");
   }
-  DBG_OUTPUT_PORT.println("");
-  DBG_OUTPUT_PORT.print("Connected! IP address: ");
+ 
+  DBG_OUTPUT_PORT.print("Connected to SSID ");
+  DBG_OUTPUT_PORT.println(WiFi.SSID());
+  DBG_OUTPUT_PORT.print("IP address: ");
   DBG_OUTPUT_PORT.println(WiFi.localIP());
 
   uint8_t mac[6];
@@ -209,8 +226,7 @@ void FSBsetup(void){
   DBG_OUTPUT_PORT.print("Open http://");
   DBG_OUTPUT_PORT.print(host);
   DBG_OUTPUT_PORT.println(".local/edit to see the file browser");
-  
-  
+
   //SERVER INIT
   //list directory
   server.on("/list", HTTP_GET, handleFileList);
@@ -226,6 +242,7 @@ void FSBsetup(void){
   //second callback handles file uploads at that location
   server.on("/edit", HTTP_POST, [](){ server.send(200, "text/plain", ""); }, handleFileUpload);
 
+  server.on("/ssid", HTTP_GET, handleSsidGet);
 
   //called when the url is not defined here
   //use it to load content from SPIFFS
@@ -249,6 +266,8 @@ void FSBsetup(void){
       HTTPUpload& upload = server.upload();
       if(upload.status == UPLOAD_FILE_START){
         Serial.setDebugOutput(true);
+        ledsOff();
+        // turn off leds
         WiFiUDP::stopAll();
         // I would like to clear the LEDs here
         Serial.printf("Update: %s\n", upload.filename.c_str());

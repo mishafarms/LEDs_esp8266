@@ -17,11 +17,16 @@
 FASTLED_USING_NAMESPACE;
 
 #define LED_TYPE    DOTSTAR
-#define COLOR_ORDER BGR
+#define COLOR_ORDER GBR
 #define NUM_LEDS    360
 
 #define BRIGHTNESS         255
 #define FRAMES_PER_SECOND  120
+
+
+#define FIVE_PM 17
+#define ONE_AM 1
+#define MINUTES_PER_HOUR 60
 
 enum Modes {
     STOP_MODE,
@@ -42,13 +47,16 @@ class Leds {
   CHSV currentHue;
   int hueCycleTime;
   int patCycleTime;
+  // the next 2 variables are for a matrix
   std::vector <uint8_t> pixelMap;
   uint8_t diagDirection;
   uint8_t shuffleCnt;
   uint8_t num;
   CRGBPalette16 gPal;
   CRGBPalette16 grPal;
-
+  int startTime;      // minutes from 12:00 to turn on LEDs
+  int stopTime;       // minutes from 12:00 to turn off LEDs
+  
 public:
   CRGB leds[NUM_LEDS];
 
@@ -66,6 +74,10 @@ public:
   CHSV hue(void);
   String getMode(void);
   bool setMode(enum Modes);
+  void setStartTime(int newTime);
+  int getStartTime(void);
+  void setStopTime(int newTime);
+  int getStopTime(void);
   void connected(void *p_data, uint16_t length);
   void disconnected(void);
   void sleepMode(void);
@@ -77,6 +89,7 @@ public:
   void colorDown(void);
   void colorUp(void);
   void shuffle(void);
+  
   void blinkSimple2(void);
   void simpleColor(void);
   void hueColor(void);
@@ -98,8 +111,9 @@ public:
   void christmasLights(void);
   void allChristmasLights(void);
   void wipe(void);
+  
   void ledTest(void);
-  void loop(void);
+  void loop(int);
   void processCommands(char const *command, uint16_t len);
 };
 #endif
