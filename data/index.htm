@@ -24,6 +24,8 @@
   <script type="text/javascript">
     var reloadPeriod = 1000;
     var running = false;
+	var onOffSet = false;
+	  
     
     function loadPatterns()
 	{
@@ -100,8 +102,24 @@
 				runN.innerHTML = "We are in " + res.mode + " mode";
 			}
 			else
-			{
+			{				
 				runN.innerHTML = "We are NOT running";
+			}
+			
+			if (!onOffSet)
+			{
+				var runChk = document.getElementById("on-off");
+
+				if (res.running == "true")
+				{
+					runChk.checked = true;
+				}
+				else
+				{
+					runChk.checked = false;
+				}
+				
+				onOffSet = true;
 			}
 		  }
           if(running)
@@ -159,7 +177,6 @@
 //      startButton.onclick = function(e){
 //        run();
 //      }
-      
       var modeButton = document.getElementById("stop-mode");
 	  modeButton.onclick = function(e){
         setMode("Stop");
