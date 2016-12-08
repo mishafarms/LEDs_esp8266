@@ -1,0 +1,16 @@
+{
+	"ApHostname" : "epslights-%m4%m5",
+	"ApPassword" : "deadbeef01",
+	"WifiMulti" : 
+	[
+		{
+			"ssid" : "Mishafarms",
+			"password" : "deadbeef01"
+		},
+		{
+			"ssid" : "Mishafarms5G",
+			"password" : "deadbeef01"
+		}
+	],
+	"mdnsHostname" : "esplights-%m4%m5"
+}

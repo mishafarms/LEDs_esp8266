@@ -49,6 +49,7 @@ Leds::Leds()
     patterns["chase"] = &Leds::chase;
     patterns["christmasLights"] = &Leds::christmasLights;
     patterns["sweep"] = &Leds::sweep;
+    patterns["dark"] = &Leds::dark;
 #if 0
     patterns.push_back(&Leds::blinkSimple2);
     patterns.push_back(&Leds::simpleColor);
@@ -509,6 +510,13 @@ int Leds::getStopTime(void)
     addGlitter(10);
   }
 
+  void Leds::dark(void)
+  {
+    for(int i = 0 ; i < NUM_LEDS ; i++)
+    {
+      leds[i] = CRGB::Black;
+    }
+  }
 
   void Leds::bpm(void)
   {

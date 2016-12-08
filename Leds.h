@@ -105,6 +105,7 @@ public:
   void greenlon(void);
   void redlon(void);
   void sweep(void);
+  void dark(void);
   void bpm(void);
   void juggle(void);
   void christmasConfetti(void);
