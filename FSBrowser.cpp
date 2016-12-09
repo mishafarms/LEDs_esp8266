@@ -227,7 +227,7 @@ void addMac(String &hostName, uint8_t *mac) {
 }
 
 void setupAp(void) {
-	char apName[30] = "";
+	String ApName;
 	uint8_t mac[6];
 	
 	// I should have done this before so that we can support AP and STA mode together
@@ -237,10 +237,13 @@ void setupAp(void) {
 
 	if (wifiConf.ApHostname == "")
 	{
-		wifiConf.ApHostname = String("espLights-%m4%m5");
+		ApName = String("espLights-%m4%m5");
 	}
-	
-	addMac(wifiConf.ApHostname, mac);
+	else
+	{
+		ApName = wifiConf.ApHostname;
+	}
+	addMac(ApName, mac);
 
 	if (wifiConf.ApPassword != "")
 	{
@@ -249,15 +252,17 @@ void setupAp(void) {
 		DBG_OUTPUT_PORT.print(" password ");
 		DBG_OUTPUT_PORT.println(wifiConf.ApPassword);
 		
-		WiFi.softAP(wifiConf.ApHostname.c_str(), wifiConf.ApPassword.c_str());		
+		WiFi.softAP(ApName.c_str(), wifiConf.ApPassword.c_str());		
 	}
 	else
 	{
-		WiFi.softAP(wifiConf.ApHostname.c_str());
+		WiFi.softAP(ApName.c_str());
 	}
 }
 
 char *configFilename = "/wifi.json";
+char *tmpConfigFilename = "/wifi.tmp";
+char *configBackFilename = "/wifi.bak.json";
 
 bool readWifiConfig(WifiConfig *pConfig) {
 	bool status = false;
@@ -368,10 +373,8 @@ bool readWifiConfig(WifiConfig *pConfig) {
 	}
 
 cleanup:
-	// as a test try to turn the config struct back into json
-	extern bool writeWifiConfig(WifiConfig *pConfig);
-	writeWifiConfig(pConfig);
-
+	configFile.close();
+	
 	free(configJson);
 	return status;
 }
@@ -412,6 +415,33 @@ bool writeWifiConfig(WifiConfig *pConfig) {
 	wifiJson.prettyPrintTo(Serial);
 	Serial.println("");
 	
+	// so now we should write this out to a file
+	// then rename the original to name.bak
+	// then rename our file to name
+	
+	// create the file or truncate it
+
+	File configFile = SPIFFS.open(tmpConfigFilename, "w");
+
+	if (!configFile) {
+		// if we can't open it then return false
+		DBG_OUTPUT_PORT.print("Write Config file ");
+		DBG_OUTPUT_PORT.print(tmpConfigFilename);
+		DBG_OUTPUT_PORT.println(" open failed");
+		return false;
+	}
+
+	// write to the file
+	
+	wifiJson.printTo(configFile);
+	configFile.close();
+
+	// now I want to move the old file out of the way
+
+	SPIFFS.rename(configFilename, configBackFilename);
+	SPIFFS.rename(tmpConfigFilename, configFilename);
+	
+	DBG_OUTPUT_PORT.println("Write Config file OK");
 	return true;
 }
 
@@ -499,18 +529,24 @@ void FSBsetup(void) {
 			DBG_OUTPUT_PORT.print("IP address: ");
 			DBG_OUTPUT_PORT.println(WiFi.localIP());
 
+			String mdnsName;
+			
 			if (wifiConf.mdnsHostname == "")
 			{
-				wifiConf.mdnsHostname = "espLights";
+				mdnsName = "espLights";
+			}
+			else
+			{
+				mdnsName = wifiConf.mdnsHostname;
 			}
 			
 			uint8_t mac[6];
 			
 			WiFi.macAddress(mac);
 
-			addMac(wifiConf.mdnsHostname, mac);
+			addMac(mdnsName, mac);
 
-			if (MDNS.begin(wifiConf.mdnsHostname.c_str())) {
+			if (MDNS.begin(mdnsName.c_str())) {
 				MDNS.addService("http", "tcp", 80);
 			}
 		}
@@ -568,11 +604,10 @@ void FSBsetup(void) {
 	}, []() {
 		HTTPUpload& upload = server.upload();
 		if(upload.status == UPLOAD_FILE_START) {
-			Serial.setDebugOutput(true);
-			ledsOff();
+			Serial.setDebugOutput(true); 
 			// turn off leds
+			ledsOff();
 			WiFiUDP::stopAll();
-			// I would like to clear the LEDs here
 			Serial.printf("Update: %s\n", upload.filename.c_str());
 			uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
 			if(!Update.begin(maxSketchSpace)) { //start with max available size
