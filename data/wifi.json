@@ -10,12 +10,12 @@
 	"WifiMulti" : 
 	[
 		{
-			"ssid" : "Mishafarms",
-			"password" : "deadbeef01"
+			"ssid" : "YourSSID1",
+			"password" : "YourPassword1"
 		},
 		{
-			"ssid" : "Mishafarms-5G",
-			"password" : "deadbeef01"
+			"ssid" : "YourSSID2",
+			"password" : "YourPassword2"
 		}
 	],
 	"mdnsHostname" : "esplights-%m4%m5"
