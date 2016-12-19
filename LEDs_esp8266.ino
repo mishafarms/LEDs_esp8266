@@ -22,7 +22,7 @@ WiFiUDP ntpUDP;
 // no offset
 // we are PST so -8 hours
 
-NTPClient timeClient(-8 * 3600);
+NTPClient *timeClient;
 
 extern ESP8266WebServer server;
 
@@ -371,7 +371,7 @@ void handleLedStatusGet() {
 
   // time
   output += ",\"time\":\"";
-  output += timeClient.getFormattedTime();
+  output += timeClient->getFormattedTime();
   output += "\"";
   
   output += "}";
@@ -399,7 +399,19 @@ void handleTimesGet(void)
   server.send(200, "text/json", output);   
 }
 
+void handleConfigSave(void) {
+   if (myLeds->writeConfig())
+   {
+      server.send(200, "text/plain", "Config file written");      
+   }
+   else
+   {
+      server.send(400, "text/plain", "Config file write failed");    
+   }
+}
+
 void setup() {
+  Serial.begin(115200);
 
   // setup the SPIFFS first so we can read our config file 
   
@@ -408,6 +420,10 @@ void setup() {
   // we need a way to pass the config into the LED constructor
   
   myLeds = new Leds();
+
+  // for now the led config has the timezone
+  
+  timeClient = new NTPClient(myLeds->timezone());
   
   // setup the LED page
   server.on("/leds", HTTP_GET, handleLedGet);
@@ -416,6 +432,7 @@ void setup() {
   server.on("/leds/color", handleLedColor);
   server.on("/leds/patterns", HTTP_GET, handleLedPatternsGet);
   server.on("/leds/times", HTTP_GET, handleTimesGet);
+  server.on("/leds/consave", HTTP_GET, handleConfigSave);
   
 #if 0
    //get heap status, analog input value and all GPIO statuses in one json call
@@ -440,11 +457,11 @@ void loop()
 {
   // make sure we deal with the time
   
-  timeClient.update();
+  timeClient->update();
 
   // we are only going to use minutes to control things so get the minutes since 12:00
 
-  myLeds->loop( (timeClient.getRawTime() % 86400L) / 60);
+  myLeds->loop( (timeClient->getRawTime() % 86400L) / 60);
 
   FSBloop();
 

@@ -1,0 +1,421 @@
+<!-- 
+  FSWebServer - Example Index Page
+  Copyright (c) 2015 Hristo Gochkov. All rights reserved.
+  This file is part of the ESP8266WebServer library for Arduino environment.
+ 
+  This library is free software; you can redistribute it and/or
+  modify it under the terms of the GNU Lesser General Public
+  License as published by the Free Software Foundation; either
+  version 2.1 of the License, or (at your option) any later version.
+  This library is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  Lesser General Public License for more details.
+  You should have received a copy of the GNU Lesser General Public
+  License along with this library; if not, write to the Free Software
+  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+-->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+  <title>LED Controller</title>
+  <meta content="width=device-width,initial-scale=1.0" name="viewport"/>
+  <meta content="IE=edge" http-equiv="X-UA-Compatible"/>
+  <script src="jscolor.js"></script>
+  <script type="text/javascript">
+  var reloadPeriod = 1000;
+  var running = false;
+  var onOffSet = false;
+    
+  
+  function loadPatterns()
+  {
+    var xh = new XMLHttpRequest();
+    xh.onreadystatechange = function()
+    {
+    if (xh.readyState == 4)
+    {
+      if(xh.status == 200)
+      {
+      var select = document.getElementById("mySelect");
+      if(select.options != undefined)
+      {
+        for(var j = select.options.length - 1; j >= 0 ; j--)
+        {
+          select.remove(j);
+        }
+      }
+      var res = JSON.parse(xh.responseText);
+      // get the sequences into a selection
+      for (var i = 0; i < res.Patterns.length; i++) {
+        var select = document.getElementById("mySelect");
+        var option = document.createElement("option");
+        option.text = res.Patterns[i].name;
+        option.value = res.Patterns[i].name;
+        select.add(option);
+      }
+      }
+    }
+    };
+    xh.open("GET", "/leds/patterns", true);
+    xh.send(null);
+  };
+  
+  function loadStatus(){
+    if(!running) return;
+    var xh = new XMLHttpRequest();
+    xh.onreadystatechange = function(){
+    if (xh.readyState == 4){
+      if(xh.status == 200) {
+      var res = JSON.parse(xh.responseText);
+      var runN = document.getElementById("mode");
+      var col = document.getElementById("color");
+      var colSel = document.getElementById("colorSel");
+      var pat = document.getElementById("pattern");
+      var currentTime = document.getElementById("curTime");
+
+      currentTime.value = res.time;
+      
+//          col.style.backgroundColor = res.color;
+//          colText.innerHTML = res.color;
+
+      if (res.mode == "Color")
+      {
+        // I only want this visible in this mode
+        if (colSel.style.display == "none")
+        {
+          colSel.style.display = "block";
+        }
+        col.jscolor.fromString(res.color);
+      }
+      else
+      {
+        if (colSel.style.display != "none")
+        {
+          colSel.style.display = "none";
+        }
+      }
+      
+      pat.innerHTML = res.pattern;
+      
+      if (res.running == "true")
+      {
+        runN.innerHTML = "We are in " + res.mode + " mode";
+      }
+      else
+      {               
+        runN.innerHTML = "We are NOT running";
+      }
+      
+      if (!onOffSet)
+      {
+        var runChk = document.getElementById("on-off");
+
+        if (res.running == "true")
+        {
+          runChk.checked = true;
+        }
+        else
+        {
+          runChk.checked = false;
+        }
+        
+        onOffSet = true;
+      }
+      }
+      if(running)
+      setTimeout(loadStatus, reloadPeriod);
+      else running = false;
+    }
+    };
+    xh.open("GET", "/leds/status", true);
+    xh.send(null);
+  };
+  
+  function loadTimes()
+  {
+    var xh = new XMLHttpRequest();
+    xh.onreadystatechange = function()
+    {
+    if (xh.readyState == 4)
+    {
+      if(xh.status == 200)
+      {
+      var startTime = document.getElementById("startTime");
+      var stopTime = document.getElementById("stopTime");
+      var res = JSON.parse(xh.responseText);
+      
+      startTime.value = res.startTime;
+      stopTime.value = res.stopTime;
+      }
+    }
+    };
+    xh.open("GET", "/leds/times", true);
+    xh.send(null);
+  };
+  
+  function run(){
+    if(!running){
+    running = true;
+    loadStatus();
+    }
+  }
+  
+  function onBodyLoad(){
+  
+//      var refreshInput = document.getElementById("refresh-rate");
+//      refreshInput.value = reloadPeriod;
+//      refreshInput.onchange = function(e){
+//        var value = parseInt(e.target.value);
+//        reloadPeriod = (value > 0)?value:0;
+//        e.target.value = reloadPeriod;
+//      }
+//      var stopButton = document.getElementById("stop-button");
+//      stopButton.onclick = function(e){
+//        running = false;
+//      }
+//      var startButton = document.getElementById("start-button");
+//      startButton.onclick = function(e){
+//        run();
+//      }
+    var modeButton = document.getElementById("stop-mode");
+    modeButton.onclick = function(e){
+    setMode("Stop");
+    }
+    modeButton = document.getElementById("pattern-mode");
+    modeButton.onclick = function(e){
+    setMode("Pattern");
+    }
+    modeButton = document.getElementById("pattern-cycle-mode");
+    modeButton.onclick = function(e){
+    setMode("Pattern_Cycle");
+    }
+    modeButton = document.getElementById("color-mode");
+    modeButton.onclick = function(e){
+    setMode("Color");
+    }
+
+    // Example with 10K thermistor
+    //function calcThermistor(v) {
+    //  var t = Math.log(((10230000 / v) - 10000));
+    //  t = (1/(0.001129148+(0.000234125*t)+(0.0000000876741*t*t*t)))-273.15;
+    //  return (t>120)?0:Math.round(t*10)/10;
+    //}
+    //temp = createGraph(document.getElementById("analog"), "Temperature", 100, 128, 10, 40, false, "cyan", calcThermistor);
+    
+//      temp = createGraph(document.getElementById("analog"), "Analog Input", 100, 128, 0, 1023, false, "cyan");
+//      heap = createGraph(document.getElementById("heap"), "Current Heap", 100, 125, 0, 30000, true, "orange");
+//      digi = createDigiGraph(document.getElementById("digital"), "GPIO", 100, 146, [0, 4, 5, 16], "gold");
+    loadTimes();  // get the start and stop times
+    loadPatterns();  // get the patterns to select from
+    run();
+  };
+ 
+  function setLedColor(jscolor) {
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.onreadystatechange = function() { 
+      if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+        callback(xmlHttp.responseText);
+    }
+    var theUrl = "http://" + window.location.host + "/leds?color=%23" + jscolor;
+    xmlHttp.open("GET", theUrl, true); // true for asynchronous 
+    xmlHttp.send(null);
+  };
+  
+  function setPattern() {
+    var pat = document.getElementById("mySelect").value;
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.onreadystatechange = function() { 
+      if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+        callback(xmlHttp.responseText);
+    }
+    var theUrl = "http://" + window.location.host + "/leds?pattern=" + pat;
+    xmlHttp.open("GET", theUrl, true); // true for asynchronous 
+    xmlHttp.send(null);
+  }
+  
+  function setMode(newMode) {
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.onreadystatechange = function() { 
+      if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+        callback(xmlHttp.responseText);
+    }
+    var theUrl = "http://" + window.location.host + "/leds?mode=" + newMode;
+    xmlHttp.open("GET", theUrl, true); // true for asynchronous 
+    xmlHttp.send(null);
+  };
+
+  function setStartTime(newTime) {
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.onreadystatechange = function() { 
+      if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+        callback(xmlHttp.responseText);
+    }
+    var theUrl = "http://" + window.location.host + "/leds?startTime=" + newTime;
+    xmlHttp.open("GET", theUrl, true); // true for asynchronous 
+    xmlHttp.send(null);
+  };
+
+  function setStopTime(newTime) {
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.onreadystatechange = function() { 
+      if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+        callback(xmlHttp.responseText);
+    }
+    var theUrl = "http://" + window.location.host + "/leds?stopTime=" + newTime;
+    xmlHttp.open("GET", theUrl, true); // true for asynchronous 
+    xmlHttp.send(null);
+  };
+  
+  function setRun(newStatus) {
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.onreadystatechange = function() { 
+      if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+        callback(xmlHttp.responseText);
+    }
+    var theUrl = "http://" + window.location.host + "/leds?running=" + newStatus;
+    xmlHttp.open("GET", theUrl, true); // true for asynchronous 
+    xmlHttp.send(null);
+  };
+  
+  function setRunning() {
+    var runChk = document.getElementById("on-off");
+    
+    if (runChk.checked)
+    {
+      setRun("true");
+    }
+    else
+    {
+      setRun("false");
+    }
+  }
+  
+ </script>
+ <style>
+  body {
+    background:white;
+  }
+  .wrapper {
+    max-width:600px;
+    padding:1em;
+  }
+  .container {
+    width:100%;
+    border-radius:8px;
+    background:rgb(238, 238, 238);;         
+    border:2px solid #999;    
+    padding:1em;
+    margin-bottom:1em;
+  }
+
+   /* The switch - the box around the slider */
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+    text-align: right:;
+  }
+
+  /* Hide default HTML checkbox */
+  .switch input {display:none;}
+
+  .button.wide {
+    width:100%;
+    border-radius: 4px;
+    text-align:center;
+    display:block;
+
+  }
+
+  /* The slider */
+  .sliders {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    -webkit-transition: .4s;
+    transition: .4s;
+  }
+
+  .sliders:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+  }
+
+  input:checked + .sliders {
+    background-color: #2196F3;
+  }
+
+  input:focus + .sliders {
+    box-shadow: 0 0 1px #2196F3;
+  }
+
+  input:checked + .sliders:before {
+    -webkit-transform: translateX(26px);
+    -ms-transform: translateX(26px);
+    transform: translateX(26px);
+  }
+
+  /* Rounded sliders */
+  .sliders.round {
+    border-radius: 34px;
+  }
+
+  .sliders.round:before {
+    border-radius: 50%;
+  }
+ </style>
+</head>
+<body id="index" style="margin:0; padding:0;" onload="onBodyLoad()">
+  <div class="wrapper">
+<!--  <div id="controls" style="display: block; border: 1px solid rgb(68, 68, 68); padding: 5px; margin: 5px; width: 400px; background-color: rgb(238, 238, 238);">
+  <label>Period (ms):</label>
+  <input type="number" id="refresh-rate"/>
+  <input type="button" id="start-button" value="Start"/>
+  <input type="button" id="stop-button" value="Stop"/>
+  </div> -->
+  <div class="info container">
+  <!-- Rounded switch -->
+  <label class="switch">
+    <input type="checkbox" onclick="setRunning()" id="on-off">
+    <div class="sliders round"></div>
+  </label> <br />
+  Current Time: <input type="time" id="curTime" readonly="readonly" value="12:00">
+  Start Time: <input type="time" id="startTime" value="00:00" size="5" onchange="setStartTime(this.value)">
+  Stop Time: <input type="time" id="stopTime" size="5" value="00:00" onchange="setStopTime(this.value)">
+  </div>
+  
+  <div class="info container">
+  <!-- Color: <span id="colorText"></span> <span id="color">&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp</span> -->
+  <h2>Control</h2>
+  <div id="mode">We don't know what mode we are in</div><br />
+  <a class="button wide" id="stop-mode">Stop</a>
+  <a class="button wide" id="pattern-mode">Pattern</a>
+  <a class="button wide" id="pattern-cycle-mode">Pattern Cycle</a>
+  <a class="button wide" id="color-mode">Color</a>
+  
+<!-- 
+  <input type="button" id="stop-mode" value="Stop"/>
+  <input type="button" id="pattern-mode" value="Pattern"/>
+  <input type="button" id="pattern-cycle-mode" value="Pattern_Cycle"/>
+  <input type="button" id="color-mode" value="Color"/> -->
+  <div id=colorSel style="display:none">Select color: <input id="color" class="jscolor" onChange="setLedColor(this.jscolor)" value="000000"></div>
+
+  <div>The current Pattern is <span id="pattern"></span> <select id="mySelect" onchange="setPattern()" name="Patterns"></select></div>
+  </div>
+  </div>
+  </body>
+</html>

@@ -32,6 +32,8 @@
 
 extern void ledsOff(void);
 
+#define htonl(x) (((x & 0xff) << 24) | ((x & 0xff00) << 8) | ((x & 0xff0000) >> 8) | ((x & 0xff000000) >> 24))
+
 #define DBG_OUTPUT_PORT Serial
 
 typedef struct wifiMultEntry {
@@ -101,11 +103,44 @@ String getContentType(String filename) {
 }
 
 bool handleFileRead(String path) {
+  static uint32_t apSubnet = 0;
+  uint32_t clIp = server.client().remoteIP();
+  bool apClient = false;
+
+  if (apSubnet == 0)
+  {
+    apSubnet = WiFi.softAPIP();
+    apSubnet = htonl(apSubnet) & 0xffffff00;
+  }
+  
 	DBG_OUTPUT_PORT.println("handleFileRead: " + path);
+
+  // this says the remote is in the 192.168.4.0 subnet
+  
+  if ((htonl(clIp) & 0xffffff00) == apSubnet) {
+    DBG_OUTPUT_PORT.println("From an AP client");
+    apClient = true;
+  }
+  
 	if (path.endsWith("/"))
 		path += "index.htm";
 	String contentType = getContentType(path);
 	String pathWithGz = path + ".gz";
+
+  if (apClient)
+  {
+    /* if we are talking to an AP client maybe give him different files if they exist.
+     * prepend an '/ap' to the path and try with that. The '/ap' isn't really a directory 
+     * it is just the name of the file.
+     * If there is no file try without.
+     */
+     
+    if (SPIFFS.exists("/ap" + pathWithGz) || SPIFFS.exists("/ap" + path)) {
+      pathWithGz = "/ap" + pathWithGz;
+      path = "/ap" + path;
+    }
+  }
+  
 	if (SPIFFS.exists(pathWithGz) || SPIFFS.exists(path)) {
 		if (SPIFFS.exists(pathWithGz))
 			path += ".gz";
@@ -248,7 +283,7 @@ void setupAp(void) {
 	if (wifiConf.ApPassword != "")
 	{
 		DBG_OUTPUT_PORT.print("Setting up AP ");
-		DBG_OUTPUT_PORT.print(wifiConf.ApHostname);
+		DBG_OUTPUT_PORT.print(ApName);
 		DBG_OUTPUT_PORT.print(" password ");
 		DBG_OUTPUT_PORT.println(wifiConf.ApPassword);
 		
@@ -260,9 +295,9 @@ void setupAp(void) {
 	}
 }
 
-char *configFilename = "/wifi.json";
-char *tmpConfigFilename = "/wifi.tmp";
-char *configBackFilename = "/wifi.bak.json";
+static const char *configFilename = "/wifi.json";
+static const char *tmpConfigFilename = "/wifi.tmp";
+static const char *configBackFilename = "/wifi.bak.json";
 
 bool readWifiConfig(WifiConfig *pConfig) {
 	bool status = false;
@@ -450,7 +485,6 @@ const char* updateIndex =
 				"name='update'><input type='submit' value='Update'></form>";
 
 void FSBsetup(void) {
-	DBG_OUTPUT_PORT.begin(115200);
 	DBG_OUTPUT_PORT.print("\n");
 	DBG_OUTPUT_PORT.setDebugOutput(true);
 
@@ -549,6 +583,10 @@ void FSBsetup(void) {
 			if (MDNS.begin(mdnsName.c_str())) {
 				MDNS.addService("http", "tcp", 80);
 			}
+
+      DBG_OUTPUT_PORT.print("Open http://");
+      DBG_OUTPUT_PORT.print(mdnsName);
+      DBG_OUTPUT_PORT.println(".local/edit to see the file browser");
 		}
 		else {
 			// we have no SSIDs to connect to, What to do? I know setup in Ap mode
@@ -559,10 +597,6 @@ void FSBsetup(void) {
 	}
 	
 	// either way we should either have an AP or an STA that can do web stuff
-
-	DBG_OUTPUT_PORT.print("Open http://");
-	DBG_OUTPUT_PORT.print(wifiConf.mdnsHostname);
-	DBG_OUTPUT_PORT.println(".local/edit to see the file browser");
 
 	//SERVER INIT
 	//list directory

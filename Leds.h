@@ -23,10 +23,12 @@ FASTLED_USING_NAMESPACE;
 #define BRIGHTNESS         255
 #define FRAMES_PER_SECOND  120
 
-
 #define FIVE_PM 17
 #define ONE_AM 1
 #define MINUTES_PER_HOUR 60
+#define SECONDS_PER_HOUR 3600
+#define ONE_DAY (24 * 60)
+#define PST_TIME -8
 
 enum Modes {
     STOP_MODE,
@@ -38,6 +40,10 @@ enum Modes {
 
 class Leds {
   enum Modes mode;
+  int startTime;      // minutes from 12:00 to turn on LEDs
+  int stopTime;       // minutes from 12:00 to turn off LEDs
+  int hueCycleTime;
+  int patCycleTime;
   bool running;
   typedef void (Leds::*funcPtr_t)(void);
   std::map <String, funcPtr_t> stringCom;
@@ -45,8 +51,6 @@ class Leds {
   std::map <String, funcPtr_t>::iterator currentPattern;
   CRGB currentRgb;
   CHSV currentHue;
-  int hueCycleTime;
-  int patCycleTime;
   // the next 2 variables are for a matrix
   std::vector <uint8_t> pixelMap;
   uint8_t diagDirection;
@@ -54,8 +58,7 @@ class Leds {
   uint8_t num;
   CRGBPalette16 gPal;
   CRGBPalette16 grPal;
-  int startTime;      // minutes from 12:00 to turn on LEDs
-  int stopTime;       // minutes from 12:00 to turn off LEDs
+  int timeZone_;  // place to keep how many seconds we are from UTC
   
 public:
   CRGB leds[NUM_LEDS];
@@ -116,6 +119,9 @@ public:
   void ledTest(void);
   void loop(int);
   void processCommands(char const *command, uint16_t len);
+  bool readConfig(void);
+  bool writeConfig(void);
+  int timezone(void);
 };
 #endif
 
