@@ -5,7 +5,7 @@
  *      Author: mlw
  */
 
-#include <NTPClient.h>
+#include "NTPClient.h"
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
 
@@ -423,7 +423,7 @@ void setup() {
 
   // for now the led config has the timezone
   
-  timeClient = new NTPClient(myLeds->timezone());
+  timeClient = new NTPClient(ntpUDP, myLeds->timezone());
   
   // setup the LED page
   server.on("/leds", HTTP_GET, handleLedGet);
@@ -445,9 +445,14 @@ void setup() {
     json = String();
   });
 #endif
-  /* call the browser setup first */
 
+  /* stop the test for now
+  
   myLeds->ledTest();
+  */
+  
+  // call the browser setup first
+
   FSBsetup();
 }
 
@@ -455,13 +460,18 @@ extern void FSBloop(void);
 
 void loop()
 {
+  int curTime = -1;
+  
   // make sure we deal with the time
   
-  timeClient->update();
+  if (timeClient->update())
+  {
+    curTime = (timeClient->getEpochTime() % 86400L) / 60;
+  }
 
   // we are only going to use minutes to control things so get the minutes since 12:00
 
-  myLeds->loop( (timeClient->getRawTime() % 86400L) / 60);
+  myLeds->loop(curTime);
 
   FSBloop();
 

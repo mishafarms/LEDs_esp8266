@@ -624,12 +624,21 @@ void FSBsetup(void) {
 		server.send(404, "text/plain", "FileNotFound");
 	});
 
+  server.on("/restart", HTTP_GET, []() {
+    server.sendHeader("Connection", "close");
+    server.sendHeader("Access-Control-Allow-Origin", "*");
+    server.send(200, "text/plain", "OK");
+    ledsOff();
+    ESP.restart();
+  });
+  
 	// setup to get program updates as well.
 	server.on("/up", HTTP_GET, []() {
 		server.sendHeader("Connection", "close");
 		server.sendHeader("Access-Control-Allow-Origin", "*");
 		server.send(200, "text/html", updateIndex);
 	});
+ 
 	server.on("/update", HTTP_POST, []() {
 		server.sendHeader("Connection", "close");
 		server.sendHeader("Access-Control-Allow-Origin", "*");

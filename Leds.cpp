@@ -43,6 +43,29 @@ Leds::Leds()
 
 	mode = PATTERN_CYCLE_MODE;
 
+  // start with the default color order
+
+  colorOrder_ = COLOR_ORDER;
+
+  
+  // build our vector of patterns here
+  patterns["allChristmasLights"] = &Leds::allChristmasLights;
+  patterns["wipe"] = &Leds::wipe;
+  patterns["christmasConfetti"] = &Leds::christmasConfetti;
+  patterns["chase"] = &Leds::chase;
+  patterns["christmasLights"] = &Leds::christmasLights;
+  patterns["sweep"] = &Leds::sweep;
+  patterns["dark"] = &Leds::dark;
+
+  currentPattern = patterns.begin();
+
+  // create some palettes
+  
+  gPal = CRGBPalette16( CRGB::Black, CRGB::Red, CRGB::Green, CRGB::Blue);
+  grPal = CRGBPalette16( CRGB::Black, CRGB::Red, CRGB::Green, CRGB::Green);
+
+  // read the config for the leds and then we can uses all the info
+
 	readConfig();
 
 	shuffleCnt = 0;
@@ -51,31 +74,55 @@ Leds::Leds()
 
 	// create the default pixel mapping. This is a normal map 0 = 0, 1 = 1, ... 24 = 24.
 
-	FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);;
+  // add the leds, this is a little cumbersome, but it does work.
+    
+  switch (colorOrder_) { 
+    case RGB:
+    {
+      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, RGB>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);;
+      break;
+    }
+    case RBG:
+    {
+      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, RBG>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);;
+      break;
+    }
+    case GRB:
+    {
+      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, GRB>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);;
+      break;
+    }
+    case GBR:
+    {
+      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, GBR>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);;
+      break;
+    }
+    case BRG:
+    {
+      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, BRG>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);;
+      break;
+    }
+    case BGR:
+    {
+      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, BGR>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);;
+      break;
+    }
+    default:
+    {
+      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, RGB>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);;
+      break;
+    }    
+  }
 
-	// build our vector of patterns here
-	patterns["allChristmasLights"] = &Leds::allChristmasLights;
-	patterns["wipe"] = &Leds::wipe;
-	patterns["christmasConfetti"] = &Leds::christmasConfetti;
-	patterns["chase"] = &Leds::chase;
-	patterns["christmasLights"] = &Leds::christmasLights;
-	patterns["sweep"] = &Leds::sweep;
-	patterns["dark"] = &Leds::dark;
-#if 0
-	patterns.push_back(&Leds::blinkSimple2);
-	patterns.push_back(&Leds::simpleColor);
-	patterns.push_back(&Leds::hueColor);
-	patterns.push_back(&Leds::chase);
-	patterns.push_back(&Leds::rainbow);
-	patterns.push_back(&Leds::diag);
-#endif
-// this is not really approved, but we just put patterns in there, 0 must be valid
+  // start running and we will figure it out later.
+  
+	running = true;
 
-	currentPattern = patterns.begin();
-	running = 1;
-
-	gPal = CRGBPalette16( CRGB::Black, CRGB::Red, CRGB::Green, CRGB::Blue);
-	grPal = CRGBPalette16( CRGB::Black, CRGB::Red, CRGB::Green, CRGB::Green);
+  if (mode == COLOR_MODE)
+  {
+    // this will start things
+    loop(-1);
+  }
 }
 
 Leds::~Leds()
@@ -675,8 +722,30 @@ bool Leds::setPattern(String newPattern)
 
 void Leds::loop(int nowTime)
 {
+  static bool _inited = false;
+
+  if (!_inited && (nowTime > 0)) {
+    // we should figure out if we are running or not, we start running so only stop us if needed
+
+    if ((startTime >= 0) && (stopTime >= 0) && (startTime != stopTime)) {
+      if (startTime > stopTime) {
+        if ((nowTime >= stopTime) && (nowTime < startTime)) {
+          // we are not running
+          stop();
+        }
+      }
+      else if ((nowTime < startTime) || (nowTime >= stopTime)) {
+        stop();
+      }
+    }
+    
+    // don't do this again
+    
+    _inited = true;
+  }
+  
 	// only if there are non-negative non-matching times
-	if ((startTime >= 0) && (stopTime >= 0) && (startTime != stopTime))
+	if (_inited && ((startTime >= 0) && (stopTime >= 0) && (startTime != stopTime)))
 	{
 		if ((nowTime == startTime) && !running) 
 		{
@@ -712,9 +781,9 @@ void Leds::loop(int nowTime)
 		if (mode == PATTERN_CYCLE_MODE)
 		{
 			EVERY_N_SECONDS( patCycleTime )
-        		  {
+      {
 				ff(); // every 5 minutes change the mode
-        		  }
+      }
 		}
 
 		break;
@@ -925,6 +994,15 @@ bool Leds::readConfig(void) {
 				}
 			}
 
+      if (ledJson.containsKey("colorOrder"))
+      {
+        // read it in
+        int tco;
+        tco = ledJson["colorOrder"];
+
+        colorOrder_ = (EOrder) tco;
+      }
+      
 			// we parsed it and stored it in the passed in struct, return true
 
 			status = true;
@@ -965,6 +1043,8 @@ bool Leds::writeConfig(void) {
 	sprintf(tmpBuf, "#%02x%02x%02x", currentRgb.red, currentRgb.green, currentRgb.blue);
 
 	ledJson["color"] = String(tmpBuf);
+
+  ledJson["colorOrder"] = (int) colorOrder_;
 
 	ledJson.prettyPrintTo(Serial);
 	Serial.println("");

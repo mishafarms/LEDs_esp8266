@@ -59,6 +59,7 @@ class Leds {
   CRGBPalette16 gPal;
   CRGBPalette16 grPal;
   int timeZone_;  // place to keep how many seconds we are from UTC
+  enum EOrder colorOrder_; // order of our LED colors
   
 public:
   CRGB leds[NUM_LEDS];
