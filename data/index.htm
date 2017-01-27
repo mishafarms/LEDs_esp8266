@@ -22,7 +22,7 @@
   <title>LED Controller</title>
   <meta content="width=device-width,initial-scale=1.0" name="viewport"/>
   <meta content="IE=edge" http-equiv="X-UA-Compatible"/>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/foundation/6.1.2/foundation.min.css" rel="stylesheet" type="text/css"/>
+  <link href="/foundation.min.css" rel="stylesheet" type="text/css"/>
   <script src="jscolor.js"></script>
   <script type="text/javascript">
   var reloadPeriod = 1000;
@@ -400,23 +400,41 @@
   </div>
   
   <div class="info container">
-  <!-- Color: <span id="colorText"></span> <span id="color">&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp</span> -->
-  <h2>Control</h2>
-  <div id="mode">We don't know what mode we are in</div><br />
-  <a class="button wide" id="stop-mode">Stop</a>
-  <a class="button wide" id="pattern-mode">Pattern</a>
-  <a class="button wide" id="pattern-cycle-mode">Pattern Cycle</a>
-  <a class="button wide" id="color-mode">Color</a>
-  
-<!-- 
-  <input type="button" id="stop-mode" value="Stop"/>
-  <input type="button" id="pattern-mode" value="Pattern"/>
-  <input type="button" id="pattern-cycle-mode" value="Pattern_Cycle"/>
-  <input type="button" id="color-mode" value="Color"/> -->
-  <div id=colorSel style="display:none">Select color: <input id="color" class="jscolor" onChange="setLedColor(this.jscolor)" value="000000"></div>
+    <!-- Color: <span id="colorText"></span> <span id="color">&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp</span> -->
+    <h2>Control</h2>
+    <div id="mode">We don't know what mode we are in</div><br />
+    <a class="button wide" id="stop-mode">Stop</a>
+    <a class="button wide" id="pattern-mode">Pattern</a>
+    <a class="button wide" id="pattern-cycle-mode">Pattern Cycle</a>
+    <a class="button wide" id="color-mode">Color</a>
+    
+  <!-- 
+    <input type="button" id="stop-mode" value="Stop"/>
+    <input type="button" id="pattern-mode" value="Pattern"/>
+    <input type="button" id="pattern-cycle-mode" value="Pattern_Cycle"/>
+    <input type="button" id="color-mode" value="Color"/> -->
+    <div id=colorSel style="display:none">Select color: <input id="color" class="jscolor" onChange="setLedColor(this.jscolor)" value="000000"></div>
 
-  <div>The current Pattern is <span id="pattern"></span> <select id="mySelect" onchange="setPattern()" name="Patterns"></select></div>
+    <div>The current Pattern is <span id="pattern"></span> <select id="mySelect" onchange="setPattern()" name="Patterns"></select></div>
+    </div>
   </div>
+
+  <div class="info container">  
+    <h2>LED Setup</h2>
+    
+    <select id="LEDType" onchange="setLEDType()" name="LEDType">
+      <!-- get LED Types here -->
+    </select>
+
+    <a class="button wide" id="stop-mode">Stop</a>
+    <a class="button wide" id="pattern-mode">Pattern</a>
+    <a class="button wide" id="pattern-cycle-mode">Pattern Cycle</a>
+    <a class="button wide" id="color-mode">Color</a>
+
+    <div id=colorSel style="display:none">Select color: <input id="color" class="jscolor" onChange="setLedColor(this.jscolor)" value="000000"></div>
+
+    <div>The current Pattern is <span id="pattern"></span> <select id="mySelect" onchange="setPattern()" name="Patterns"></select></div>
+    </div>
   </div>
-  </body>
+</body>
 </html>
