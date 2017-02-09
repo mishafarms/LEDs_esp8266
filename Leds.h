@@ -17,8 +17,13 @@
 FASTLED_USING_NAMESPACE;
 
 #define LED_TYPE    DOTSTAR
+
 #define COLOR_ORDER GBR
-#define NUM_LEDS    360
+#define DEFAULT_NUM_LEDS 25
+#define MAX_NUM_LEDS 480
+
+#define NUM_UNI_LEDS 60
+#define MAX_UNIS     10
 
 #define BRIGHTNESS         255
 #define FRAMES_PER_SECOND  120
@@ -35,17 +40,19 @@ enum Modes {
     COLOR_MODE,
     PATTERN_MODE,
     PATTERN_CYCLE_MODE,
+    ARTNET_MODE,
     LAST_MODE
 };
 
 class Leds {
   enum Modes mode;
+  enum Modes lastMode;
   int startTime;      // minutes from 12:00 to turn on LEDs
   int stopTime;       // minutes from 12:00 to turn off LEDs
   int hueCycleTime;
   int patCycleTime;
   bool running;
-  typedef void (Leds::*funcPtr_t)(void);
+  typedef void (Leds::*funcPtr_t)(void); // this is a function pointer so we can pass patterns around
   std::map <String, funcPtr_t> stringCom;
   std::map <String, funcPtr_t> patterns;
   std::map <String, funcPtr_t>::iterator currentPattern;
@@ -61,8 +68,13 @@ class Leds {
   int timeZone_;  // place to keep how many seconds we are from UTC
   enum EOrder colorOrder_; // order of our LED colors
   
+  bool artnetEnabled;
+  uint16_t artnetPort;
+  int _startUniverse;
+
 public:
-  CRGB leds[NUM_LEDS];
+  CRGB leds[MAX_NUM_LEDS];
+  int numLeds;
 
   /* Constructor, init the LEDS */
 

@@ -1,6 +1,8 @@
 #include "Leds.h"
 #include <FS.h>
 #include <ArduinoJson.h>
+#include "artnet.h"
+#include <WiFiUdp.h>
 
 #define DBG_OUTPUT_PORT Serial
 
@@ -9,8 +11,24 @@ String modeNames[LAST_MODE + 1] = {
 		"Color",
 		"Pattern",
 		"Pattern_Cycle",
+    "Artnet",
 		"Last"
 };
+
+extern Leds *myLeds;
+
+// there should probably be one per Led object
+
+static WiFiUDP _artnetUdp;
+static  Artnet *_artnet;
+void onDmxFrame(uint16_t universe, uint16_t length, uint8_t sequence, uint8_t* data);
+
+int startUniverse = 0; // sometimes software may start at 1
+
+// Check if we got all universes
+int maxUniverses = 0;
+bool universesReceived[MAX_UNIS];
+unsigned long artNetRecved = 0;
 
 Leds::Leds()
 {
@@ -39,6 +57,8 @@ Leds::Leds()
 	hueCycleTime = 20; // this is milliseconds
 	patCycleTime = 60; // this is in seconds
 
+  numLeds = DEFAULT_NUM_LEDS;
+  
 	// set to cycle through the patterns
 
 	mode = PATTERN_CYCLE_MODE;
@@ -67,7 +87,7 @@ Leds::Leds()
   // read the config for the leds and then we can uses all the info
 
 	readConfig();
-
+ 
 	shuffleCnt = 0;
 
 	num = 3;
@@ -79,37 +99,37 @@ Leds::Leds()
   switch (colorOrder_) { 
     case RGB:
     {
-      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, RGB>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);;
+      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, RGB>(leds, numLeds).setCorrection(TypicalLEDStrip);;
       break;
     }
     case RBG:
     {
-      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, RBG>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);;
+      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, RBG>(leds, numLeds).setCorrection(TypicalLEDStrip);;
       break;
     }
     case GRB:
     {
-      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, GRB>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);;
+      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, GRB>(leds, numLeds).setCorrection(TypicalLEDStrip);;
       break;
     }
     case GBR:
     {
-      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, GBR>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);;
+      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, GBR>(leds, numLeds).setCorrection(TypicalLEDStrip);;
       break;
     }
     case BRG:
     {
-      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, BRG>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);;
+      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, BRG>(leds, numLeds).setCorrection(TypicalLEDStrip);;
       break;
     }
     case BGR:
     {
-      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, BGR>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);;
+      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, BGR>(leds, numLeds).setCorrection(TypicalLEDStrip);;
       break;
     }
     default:
     {
-      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, RGB>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);;
+      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, RGB>(leds, numLeds).setCorrection(TypicalLEDStrip);;
       break;
     }    
   }
@@ -122,6 +142,17 @@ Leds::Leds()
   {
     // this will start things
     loop(-1);
+  }
+
+  // look and see if we should open the artnet port
+
+  if (artnetEnabled)
+  {
+    startUniverse = _startUniverse;
+    maxUniverses = (numLeds + (NUM_UNI_LEDS - 1))/ NUM_UNI_LEDS;
+    _artnet = new Artnet(_artnetUdp);
+    _artnet->begin(artnetPort);
+    _artnet->setArtDmxCallback(onDmxFrame);
   }
 }
 
@@ -170,6 +201,8 @@ bool Leds::setMode(enum Modes newMode)
 		return false;
 	}
 
+  // save the last mode, just in case
+  lastMode = mode;
 	mode = newMode;
 }
 
@@ -274,7 +307,7 @@ void Leds::ff(void)
 		currentPattern = patterns.begin();
 	}
 
-	fill_solid(leds, NUM_LEDS, CRGB::Black);
+	fill_solid(leds, numLeds, CRGB::Black);
 }
 
 /**@brief Function for moving the led mode backward.
@@ -294,7 +327,7 @@ void Leds::rew(void)
 	currentPattern--;
 
 
-	fill_solid(leds, NUM_LEDS, CRGB::Black);
+	fill_solid(leds, numLeds, CRGB::Black);
 }
 
 /**@brief Function for doing something with the leds when we receive a play command.
@@ -379,7 +412,7 @@ void Leds::blinkSimple2(void)
 
 		if (frame)
 		{
-			for( x = 0 ; x < NUM_LEDS ; x++ )
+			for( x = 0 ; x < numLeds ; x++ )
 			{
 				if ( x % 2 )
 				{
@@ -395,7 +428,7 @@ void Leds::blinkSimple2(void)
 		}
 		else
 		{
-			for( x = 0 ; x < NUM_LEDS ; x++ )
+			for( x = 0 ; x < numLeds ; x++ )
 			{
 				if ( x % 2 )
 				{
@@ -423,7 +456,7 @@ void Leds::blinkSimple2(void)
 void Leds::simpleColor(void)
 {
 	// go all blue till we get a command or timeout
-	fill_solid(leds, NUM_LEDS, currentRgb);
+	fill_solid(leds, numLeds, currentRgb);
 	FastLED.show();
 }
 
@@ -437,7 +470,7 @@ void Leds::hueColor(void)
 {
 	CRGB rgb = currentHue;
 
-	fill_solid(leds, NUM_LEDS, rgb);
+	fill_solid(leds, numLeds, rgb);
 	FastLED.show();
 }
 
@@ -452,9 +485,9 @@ void Leds::chase(void)
 	// simple single led chase
 	static int pos = 0;
 
-	fill_solid(leds, NUM_LEDS, CRGB::Black);
+	fill_solid(leds, numLeds, CRGB::Black);
 	leds[pos] = currentRgb;
-	pos = (pos + 1) % NUM_LEDS;
+	pos = (pos + 1) % numLeds;
 	FastLED.show();
 }
 
@@ -463,12 +496,12 @@ void Leds::chase2()
 	static int j = 0;
 
 	EVERY_N_MILLISECONDS(300) {
-		for(int x = 0 ; x < NUM_LEDS ; x++)
+		for(int x = 0 ; x < numLeds ; x++)
 		{
 			leds[x] = CRGB::Black;
 		}
 
-		for(int i = j ; i < NUM_LEDS ; i += num)
+		for(int i = j ; i < numLeds ; i += num)
 		{
 			leds[i] = ColorFromPalette(gPal, beatsin8(5));
 		}
@@ -486,14 +519,14 @@ void Leds::chase2()
  */
 void Leds::rainbow(void)
 {
-	fill_rainbow(leds, NUM_LEDS, currentHue.hue, 7);
+	fill_rainbow(leds, numLeds, currentHue.hue, 7);
 	FastLED.show();
 }
 
 void Leds::addGlitter( fract8 chanceOfGlitter)
 {
 	if( random8() < chanceOfGlitter) {
-		leds[ random16(NUM_LEDS) ] += CRGB::White;
+		leds[ random16(numLeds) ] += CRGB::White;
 	}
 }
 
@@ -507,24 +540,24 @@ void Leds::rainbowWithGlitter(void)
 void Leds::gConfetti(void)
 {
 	// random colored speckles that blink in and fade smoothly
-	fadeToBlackBy( leds, NUM_LEDS, 10);
-	int pos = random16(NUM_LEDS);
+	fadeToBlackBy( leds, numLeds, 10);
+	int pos = random16(numLeds);
 	leds[pos] += CHSV( HUE_GREEN + random8(64), 200, 255);
 }
 
 void Leds::rConfetti(void)
 {
 	// random colored speckles that blink in and fade smoothly
-	fadeToBlackBy( leds, NUM_LEDS, 10);
-	int pos = random16(NUM_LEDS);
+	fadeToBlackBy( leds, numLeds, 10);
+	int pos = random16(numLeds);
 	leds[pos] += CHSV( HUE_RED + random8(64), 200, 255);
 }
 
 void Leds::confetti(void)
 {
 	// random colored speckles that blink in and fade smoothly
-	fadeToBlackBy( leds, NUM_LEDS, 10);
-	int pos = random16(NUM_LEDS);
+	fadeToBlackBy( leds, numLeds, 10);
+	int pos = random16(numLeds);
 	CHSV confetti = currentHue;
 
 	confetti.h += random8(64);
@@ -535,16 +568,16 @@ void Leds::confetti(void)
 void Leds::sinelon(void)
 {
 	// a colored dot sweeping back and forth, with fading trails
-	fadeToBlackBy( leds, NUM_LEDS, 20);
-	int pos = beatsin16(13,0,NUM_LEDS);
+	fadeToBlackBy( leds, numLeds, 20);
+	int pos = beatsin16(13,0,numLeds);
 	leds[pos] += ColorFromPalette(gPal, beatsin8(20));
 }
 
 void Leds::greenlon(void)
 {
 	// a colored dot sweeping back and forth, with fading trails
-	fadeToBlackBy( leds, NUM_LEDS, 20);
-	int pos = beatsin16(13,0,NUM_LEDS);
+	fadeToBlackBy( leds, numLeds, 20);
+	int pos = beatsin16(13,0,numLeds);
 	leds[pos] += CRGB::Green;
 	addGlitter(40);
 }
@@ -552,15 +585,15 @@ void Leds::greenlon(void)
 void Leds::redlon(void)
 {
 	// a colored dot sweeping back and forth, with fading trails
-	fadeToBlackBy( leds, NUM_LEDS, 20);
-	int pos = beatsin16(13,0,NUM_LEDS);
+	fadeToBlackBy( leds, numLeds, 20);
+	int pos = beatsin16(13,0,numLeds);
 	leds[pos] += CRGB::Red;
 	addGlitter(40);
 }
 
 void Leds::sweep(void)
 {
-	for(int i = 0 ; i < NUM_LEDS ; i++)
+	for(int i = 0 ; i < numLeds ; i++)
 	{
 		leds[i] = ColorFromPalette(grPal, beatsin8(5));
 	}
@@ -570,7 +603,7 @@ void Leds::sweep(void)
 
 void Leds::dark(void)
 {
-	for(int i = 0 ; i < NUM_LEDS ; i++)
+	for(int i = 0 ; i < numLeds ; i++)
 	{
 		leds[i] = CRGB::Black;
 	}
@@ -582,25 +615,25 @@ void Leds::bpm(void)
 	uint8_t BeatsPerMinute = 62;
 	CRGBPalette16 palette = PartyColors_p;
 	uint8_t beat = beatsin8( BeatsPerMinute, 64, 255);
-	for( int i = 0; i < NUM_LEDS; i++) { //9948
+	for( int i = 0; i < numLeds; i++) { //9948
 		leds[i] = ColorFromPalette(palette, currentHue.hue + (i*2), beat-currentHue.hue + (i*10));
 	}
 }
 
 void Leds::juggle(void) {
 	// eight colored dots, weaving in and out of sync with each other
-	fadeToBlackBy( leds, NUM_LEDS, 20);
+	fadeToBlackBy( leds, numLeds, 20);
 	byte dothue = 0;
 	for( int i = 0; i < 8; i++) {
-		leds[beatsin16(i+7,0,NUM_LEDS)] |= CHSV(dothue, 200, 255);
+		leds[beatsin16(i+7,0,numLeds)] |= CHSV(dothue, 200, 255);
 		dothue += 32;
 	}
 }
 
 void Leds::christmasConfetti(void) {
 	// random colored speckles that blink in and fade smoothly
-	fadeToBlackBy( leds, NUM_LEDS, 10);
-	int pos = random16(NUM_LEDS);
+	fadeToBlackBy( leds, numLeds, 10);
+	int pos = random16(numLeds);
 	leds[pos] =  ColorFromPalette( gPal, random8(255));
 }
 
@@ -611,14 +644,14 @@ void Leds::christmasLights(void) {
 	static int times = 0;
 
 	EVERY_N_MILLISECONDS(600){
-		for(int x = 0 ; x < NUM_LEDS ; x++)
+		for(int x = 0 ; x < numLeds ; x++)
 		{
 			leds[x] = CRGB::Black;
 		}
 
 		color = ltColors[times % (sizeof(ltColors) / sizeof(color))];
 
-		for( x = 0 + (times % 4) ; x < NUM_LEDS ; x += 4)
+		for( x = 0 + (times % 4) ; x < numLeds ; x += 4)
 		{
 			leds[x] = color;
 		}
@@ -633,7 +666,7 @@ void Leds::allChristmasLights(void) {
 	static int times = 0;
 
 	EVERY_N_MILLISECONDS(600){
-		for( x = 0 ; x < NUM_LEDS; x += 8)
+		for( x = 0 ; x < numLeds; x += 8)
 		{
 			for(int y = 0 ; y < 8 ; y++)
 			{
@@ -650,7 +683,7 @@ void Leds::wipe(void) {
 	static CRGB color;
 	static int wiping = 0;
 
-	if (wiping >= NUM_LEDS)
+	if (wiping >= numLeds)
 	{
 		wiping = 0;
 		color = ColorFromPalette( gPal, random8(255));
@@ -757,6 +790,11 @@ void Leds::loop(int nowTime)
 		}
 	}
 
+  if (artnetEnabled)
+  {
+    _artnet->read();
+  }
+  
 	if (!running)
 	{
 		return;  
@@ -795,6 +833,13 @@ void Leds::loop(int nowTime)
 		break;  
 	}
 
+  case ARTNET_MODE:
+  {
+    // if we are in artnet mode and haven't seen a packet in a while, then change back to the old mode
+    // I'm not doing this yet
+    break;
+  }
+  
 	case STOP_MODE:
 	default:
 		// do nothing for now
@@ -1003,7 +1048,35 @@ bool Leds::readConfig(void) {
         colorOrder_ = (EOrder) tco;
       }
       
+      if (ledJson.containsKey("numLeds"))
+      {
+        // read it in
+
+        numLeds = ledJson["numLeds"];
+      }
+ 
+      if (ledJson.containsKey("artnetEnabled"))
+      {
+        // read it in
+
+        artnetEnabled = (bool) ledJson["artnetEnabled"];
+      }
+      
+      if (ledJson.containsKey("artnetPort"))
+      {
+        // read it in, but it is an IP port and can really only be 16Bits
+
+        artnetPort = (uint16_t) ledJson["artnetPort"];
+      }
+      
+      if (ledJson.containsKey("startUniverse"))
+      {
+        _startUniverse = ledJson["startUniverse"];
+      }
+      
 			// we parsed it and stored it in the passed in struct, return true
+      
+      DBG_OUTPUT_PORT.println("Successfully read config file ");
 
 			status = true;
 			goto cleanup;
@@ -1035,7 +1108,7 @@ bool Leds::writeConfig(void) {
 	ledJson["stopTime"] = stopTime;
   ledJson["timeZone"] = timeZone_;
 	ledJson["hueCycleTime"] = hueCycleTime;
-	ledJson["patCycleTime"] = patCycleTime;
+	ledJson["patCycleTime"] = patCycleTime;\
 
 	// color is a little more complex
 	char tmpBuf[20];
@@ -1045,7 +1118,12 @@ bool Leds::writeConfig(void) {
 	ledJson["color"] = String(tmpBuf);
 
   ledJson["colorOrder"] = (int) colorOrder_;
+  ledJson["numLeds"] = (int) numLeds;
 
+  ledJson["artnetEnabled"] = (int) artnetEnabled;
+  ledJson["artnetPort"] = artnetPort;
+  ledJson["startUniverse"] = _startUniverse;
+    
 	ledJson.prettyPrintTo(Serial);
 	Serial.println("");
 
@@ -1079,4 +1157,59 @@ bool Leds::writeConfig(void) {
 	return true;
 }
 
+void onDmxFrame(uint16_t universe, uint16_t length, uint8_t sequence, uint8_t* data)
+{
+  int sendFrame = 1;
+  
+  // set brightness of the whole strip
+  if (universe == 15)
+  {
+    FastLED.setBrightness(data[0]);
+    FastLED.show();
+  }
+
+  // Store which universe has got in
+  if ((universe - startUniverse) < maxUniverses)
+  {
+    universesReceived[universe - startUniverse] = 1;
+  }
+  
+  for (int i = 0 ; i < maxUniverses ; i++)
+  {
+    if (universesReceived[i] == 0)
+    {
+      //Serial.println("Broke");
+      sendFrame = 0;
+      break;
+    }
+  }
+
+  int maxLeds = ((length / 3) < NUM_UNI_LEDS) ? (length / 3) : NUM_UNI_LEDS;
+
+  // read universe and put into the right part of the display buffer
+  for (int i = 0; i < maxLeds; i++)
+  {
+    int led = i + (universe - startUniverse) * NUM_UNI_LEDS;
+    if (led < myLeds->numLeds)
+    {
+      myLeds->leds[i] = CRGB(data[i * 3], data[i * 3 + 1], data[i * 3 + 2]);
+    }
+  }
+
+  if (sendFrame)
+  {
+    FastLED.show();
+    // Reset universeReceived to 0
+    memset(universesReceived, 0, maxUniverses);
+  }
+
+  // if we are not in ARTNET mode then we should be
+
+  if (myLeds->getMode() != "Artnet")
+  {
+    myLeds->setMode(ARTNET_MODE);
+  }
+
+  artNetRecved = millis();  // keep track of the last time we were being controlled
+}
 

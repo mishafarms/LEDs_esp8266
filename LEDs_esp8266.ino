@@ -433,8 +433,15 @@ void setup() {
   server.on("/leds/patterns", HTTP_GET, handleLedPatternsGet);
   server.on("/leds/times", HTTP_GET, handleTimesGet);
   server.on("/leds/consave", HTTP_GET, handleConfigSave);
+  server.on("/heap", HTTP_GET, [](){
+    String json = "{";
+    json += "\"heap\":"+String(ESP.getFreeHeap());
+    json += "}";
+    server.send(200, "text/json", json);
+    json = String();
+  });
   
-#if 0
+  #if 0
    //get heap status, analog input value and all GPIO statuses in one json call
   server.on("/all", HTTP_GET, [](){
     String json = "{";
