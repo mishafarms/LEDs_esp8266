@@ -67,6 +67,9 @@ Leds::Leds()
 
   colorOrder_ = COLOR_ORDER;
 
+  // default the artnetWaitTime, it may get overwritten in the config file
+
+  artnetWaitTime = ARTNET_WAIT_TIME;
   
   // build our vector of patterns here
   patterns["allChristmasLights"] = &Leds::allChristmasLights;
@@ -836,7 +839,10 @@ void Leds::loop(int nowTime)
   case ARTNET_MODE:
   {
     // if we are in artnet mode and haven't seen a packet in a while, then change back to the old mode
-    // I'm not doing this yet
+    if ((artNetRecved + artnetWaitTime) < millis())
+    {
+      mode = lastMode;
+    }
     break;
   }
   
@@ -1062,6 +1068,13 @@ bool Leds::readConfig(void) {
         artnetEnabled = (bool) ledJson["artnetEnabled"];
       }
       
+      if (ledJson.containsKey("artnetWaitTime"))
+      {
+        // read it in
+
+        artnetWaitTime = ledJson["artnetWaitTime"];
+      }
+      
       if (ledJson.containsKey("artnetPort"))
       {
         // read it in, but it is an IP port and can really only be 16Bits
@@ -1121,6 +1134,7 @@ bool Leds::writeConfig(void) {
   ledJson["numLeds"] = (int) numLeds;
 
   ledJson["artnetEnabled"] = (int) artnetEnabled;
+  ledJson["artnetWaitTime"] = (int) artnetWaitTime;
   ledJson["artnetPort"] = artnetPort;
   ledJson["startUniverse"] = _startUniverse;
     
@@ -1145,9 +1159,13 @@ bool Leds::writeConfig(void) {
 
 	// write to the file
 
-	ledJson.printTo(configFile);
+	ledJson.prettyPrintTo(configFile);
 	configFile.close();
 
+  // get rid of any old backups
+
+  SPIFFS.remove(configBackFilename);
+  
 	// now I want to move the old file out of the way
 
 	SPIFFS.rename(configFilename, configBackFilename);
@@ -1160,6 +1178,15 @@ bool Leds::writeConfig(void) {
 void onDmxFrame(uint16_t universe, uint16_t length, uint8_t sequence, uint8_t* data)
 {
   int sendFrame = 1;
+  
+  // if we are not in ARTNET mode then we should be
+
+  if (myLeds->getMode() != "Artnet")
+  {
+    myLeds->setMode(ARTNET_MODE);
+  }
+
+  artNetRecved = millis();  // keep track of the last time we were being controlled
   
   // set brightness of the whole strip
   if (universe == 15)
@@ -1203,13 +1230,6 @@ void onDmxFrame(uint16_t universe, uint16_t length, uint8_t sequence, uint8_t* d
     memset(universesReceived, 0, maxUniverses);
   }
 
-  // if we are not in ARTNET mode then we should be
-
-  if (myLeds->getMode() != "Artnet")
-  {
-    myLeds->setMode(ARTNET_MODE);
-  }
-
-  artNetRecved = millis();  // keep track of the last time we were being controlled
+ 
 }
 

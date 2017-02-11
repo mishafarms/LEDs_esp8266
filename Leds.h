@@ -35,6 +35,8 @@ FASTLED_USING_NAMESPACE;
 #define ONE_DAY (24 * 60)
 #define PST_TIME -8
 
+#define ARTNET_WAIT_TIME (60 * 1000) // 1 minute in milliseconds
+
 enum Modes {
     STOP_MODE,
     COLOR_MODE,
@@ -69,6 +71,7 @@ class Leds {
   enum EOrder colorOrder_; // order of our LED colors
   
   bool artnetEnabled;
+  int artnetWaitTime;
   uint16_t artnetPort;
   int _startUniverse;
 
