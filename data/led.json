@@ -2,14 +2,14 @@
   "mode": "Pattern_Cycle",
   "startTime": 60,
   "stopTime": 60,
-  "timeZone": -28800,
+  "timeZone": -8,
   "hueCycleTime": 20,
   "patCycleTime": 60,
   "color": "#b63900",
-  "colorOrder": 80,
+  "colorOrder": "RGB",
   "numLeds": 25,
   "artnetEnabled": 1,
-  "artnetWaitTime": 60000,
+  "artnetWaitTime": 60,
   "artnetPort": 0,
   "startUniverse": 0
 }

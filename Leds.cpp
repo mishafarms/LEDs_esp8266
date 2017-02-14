@@ -877,6 +877,66 @@ int Leds::timezone(void) {
   return(timeZone_);
 }
 
+static EOrder strToColorOrder(String colorOrder)
+{
+  if (colorOrder == "RBG")
+  {
+    return RBG;  
+  }
+
+  if (colorOrder == "GRB")
+  {
+    return GRB;  
+  }
+ 
+  if (colorOrder == "GBR")
+  {
+    return GBR;  
+  }
+
+  if (colorOrder == "BRG")
+  {
+    return BRG;  
+  }
+ 
+  if (colorOrder == "BGR")
+  {
+    return BGR;  
+  }
+  
+  return RGB;
+}
+
+static String colorOrderToStr(EOrder colorOrder)
+{
+  switch (colorOrder)
+  {
+    case RGB:
+      return("RGB");
+      break;
+    case RBG:
+      return("RBG");
+      break;
+    case GRB:
+      return("GRB");
+      break;
+    case GBR:
+      return("GBR");
+      break;
+    case BRG:
+      return("BRG");
+      break;
+    case BGR:
+      return("BGR");
+      break;
+    default:
+      return("RGB");
+      break;
+  }
+
+  return("");
+}
+
 static const char *configFilename = "/led.json";
 static const char *tmpConfigFilename = "/led.tmp";
 static const char *configBackFilename = "/led.bak.json";
@@ -984,7 +1044,7 @@ bool Leds::readConfig(void) {
 
       if (ledJson.containsKey("timeZone"))
       {
-        timeZone_ = ledJson["timeZone"];
+        timeZone_ = (int) (ledJson["timeZone"]) * 3600;
       }
       
 			if (ledJson.containsKey("hueCycleTime"))
@@ -1047,11 +1107,11 @@ bool Leds::readConfig(void) {
 
       if (ledJson.containsKey("colorOrder"))
       {
-        // read it in
-        int tco;
-        tco = ledJson["colorOrder"];
-
-        colorOrder_ = (EOrder) tco;
+        Serial.print("We got a colorOrder (");
+        Serial.print(ledJson["colorOrder"].asString());
+        Serial.println(")");
+        
+        colorOrder_ = strToColorOrder(ledJson["colorOrder"].asString());
       }
       
       if (ledJson.containsKey("numLeds"))
@@ -1072,7 +1132,7 @@ bool Leds::readConfig(void) {
       {
         // read it in
 
-        artnetWaitTime = ledJson["artnetWaitTime"];
+        artnetWaitTime = (int) (ledJson["artnetWaitTime"]) * 1000;
       }
       
       if (ledJson.containsKey("artnetPort"))
@@ -1119,7 +1179,7 @@ bool Leds::writeConfig(void) {
 	ledJson["mode"] = String(modeNames[mode]);
 	ledJson["startTime"] = startTime;
 	ledJson["stopTime"] = stopTime;
-  ledJson["timeZone"] = timeZone_;
+  ledJson["timeZone"] = timeZone_ / 3600;
 	ledJson["hueCycleTime"] = hueCycleTime;
 	ledJson["patCycleTime"] = patCycleTime;\
 
@@ -1130,11 +1190,11 @@ bool Leds::writeConfig(void) {
 
 	ledJson["color"] = String(tmpBuf);
 
-  ledJson["colorOrder"] = (int) colorOrder_;
+  ledJson["colorOrder"] = colorOrderToStr(colorOrder_);
   ledJson["numLeds"] = (int) numLeds;
 
   ledJson["artnetEnabled"] = (int) artnetEnabled;
-  ledJson["artnetWaitTime"] = (int) artnetWaitTime;
+  ledJson["artnetWaitTime"] = (int) artnetWaitTime / 1000;
   ledJson["artnetPort"] = artnetPort;
   ledJson["startUniverse"] = _startUniverse;
     
@@ -1229,7 +1289,5 @@ void onDmxFrame(uint16_t universe, uint16_t length, uint8_t sequence, uint8_t* d
     // Reset universeReceived to 0
     memset(universesReceived, 0, maxUniverses);
   }
-
- 
 }
 
