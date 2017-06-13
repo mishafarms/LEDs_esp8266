@@ -11,7 +11,7 @@ String modeNames[LAST_MODE + 1] = {
 		"Color",
 		"Pattern",
 		"Pattern_Cycle",
-    "Artnet",
+		"Artnet",
 		"Last"
 };
 
@@ -52,42 +52,42 @@ Leds::Leds()
 
 	startTime = FIVE_PM * MINUTES_PER_HOUR;    // by default on at 5pm
 	stopTime = ONE_AM * MINUTES_PER_HOUR;      // by default off at 1am
-  timeZone_ = (PST_TIME * SECONDS_PER_HOUR);
+	timeZone_ = (PST_TIME * SECONDS_PER_HOUR);
 
 	hueCycleTime = 20; // this is milliseconds
 	patCycleTime = 60; // this is in seconds
 
-  numLeds = DEFAULT_NUM_LEDS;
+	numLeds = DEFAULT_NUM_LEDS;
   
 	// set to cycle through the patterns
 
 	mode = PATTERN_CYCLE_MODE;
 
-  // start with the default color order
+	// start with the default color order
 
-  colorOrder_ = COLOR_ORDER;
+	colorOrder_ = COLOR_ORDER;
 
-  // default the artnetWaitTime, it may get overwritten in the config file
+	// default the artnetWaitTime, it may get overwritten in the config file
 
-  artnetWaitTime = ARTNET_WAIT_TIME;
-  
-  // build our vector of patterns here
-  patterns["allChristmasLights"] = &Leds::allChristmasLights;
-  patterns["wipe"] = &Leds::wipe;
-  patterns["christmasConfetti"] = &Leds::christmasConfetti;
-  patterns["chase"] = &Leds::chase;
-  patterns["christmasLights"] = &Leds::christmasLights;
-  patterns["sweep"] = &Leds::sweep;
-  patterns["dark"] = &Leds::dark;
+	artnetWaitTime = ARTNET_WAIT_TIME;
 
-  currentPattern = patterns.begin();
+	// build our vector of patterns here
+	patterns["allChristmasLights"] = &Leds::allChristmasLights;
+	patterns["wipe"] = &Leds::wipe;
+	patterns["christmasConfetti"] = &Leds::christmasConfetti;
+	patterns["chase"] = &Leds::chase;
+	patterns["christmasLights"] = &Leds::christmasLights;
+	patterns["sweep"] = &Leds::sweep;
+	patterns["dark"] = &Leds::dark;
 
-  // create some palettes
-  
-  gPal = CRGBPalette16( CRGB::Black, CRGB::Red, CRGB::Green, CRGB::Blue);
-  grPal = CRGBPalette16( CRGB::Black, CRGB::Red, CRGB::Green, CRGB::Green);
+	currentPattern = patterns.begin();
 
-  // read the config for the leds and then we can uses all the info
+	// create some palettes
+
+	gPal = CRGBPalette16( CRGB::Black, CRGB::Red, CRGB::Green, CRGB::Blue);
+	grPal = CRGBPalette16( CRGB::Black, CRGB::Red, CRGB::Green, CRGB::Green);
+
+	// read the config for the leds and then we can uses all the info
 
 	readConfig();
  
@@ -97,66 +97,67 @@ Leds::Leds()
 
 	// create the default pixel mapping. This is a normal map 0 = 0, 1 = 1, ... 24 = 24.
 
-  // add the leds, this is a little cumbersome, but it does work.
-    
-  switch (colorOrder_) { 
-    case RGB:
-    {
-      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, RGB>(leds, numLeds).setCorrection(TypicalLEDStrip);;
-      break;
-    }
-    case RBG:
-    {
-      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, RBG>(leds, numLeds).setCorrection(TypicalLEDStrip);;
-      break;
-    }
-    case GRB:
-    {
-      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, GRB>(leds, numLeds).setCorrection(TypicalLEDStrip);;
-      break;
-    }
-    case GBR:
-    {
-      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, GBR>(leds, numLeds).setCorrection(TypicalLEDStrip);;
-      break;
-    }
-    case BRG:
-    {
-      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, BRG>(leds, numLeds).setCorrection(TypicalLEDStrip);;
-      break;
-    }
-    case BGR:
-    {
-      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, BGR>(leds, numLeds).setCorrection(TypicalLEDStrip);;
-      break;
-    }
-    default:
-    {
-      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, RGB>(leds, numLeds).setCorrection(TypicalLEDStrip);;
-      break;
-    }    
-  }
+	// add the leds, this is a little cumbersome, but it does work.
 
-  // start running and we will figure it out later.
+	switch (colorOrder_)
+	{ 
+		case RGB:
+		{
+		  FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, RGB>(leds, numLeds).setCorrection(TypicalLEDStrip);;
+		  break;
+		}
+		case RBG:
+		{
+		  FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, RBG>(leds, numLeds).setCorrection(TypicalLEDStrip);;
+		  break;
+		}
+		case GRB:
+		{
+		  FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, GRB>(leds, numLeds).setCorrection(TypicalLEDStrip);;
+		  break;
+		}
+		case GBR:
+		{
+		  FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, GBR>(leds, numLeds).setCorrection(TypicalLEDStrip);;
+		  break;
+		}
+		case BRG:
+		{
+		  FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, BRG>(leds, numLeds).setCorrection(TypicalLEDStrip);;
+		  break;
+		}
+		case BGR:
+		{
+		  FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, BGR>(leds, numLeds).setCorrection(TypicalLEDStrip);;
+		  break;
+		}
+		default:
+		{
+		  FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, RGB>(leds, numLeds).setCorrection(TypicalLEDStrip);;
+		  break;
+		}    
+	}
+
+	// start running and we will figure it out later.
   
 	running = true;
 
-  if (mode == COLOR_MODE)
-  {
-    // this will start things
-    loop(-1);
-  }
+	if (mode == COLOR_MODE)
+	{
+		// this will start things
+		loop(-1);
+	}
 
-  // look and see if we should open the artnet port
+	// look and see if we should open the artnet port
 
-  if (artnetEnabled)
-  {
-    startUniverse = _startUniverse;
-    maxUniverses = (numLeds + (NUM_UNI_LEDS - 1))/ NUM_UNI_LEDS;
-    _artnet = new Artnet(_artnetUdp);
-    _artnet->begin(artnetPort);
-    _artnet->setArtDmxCallback(onDmxFrame);
-  }
+	if (artnetEnabled)
+	{
+		startUniverse = _startUniverse;
+		maxUniverses = (numLeds + (NUM_UNI_LEDS - 1))/ NUM_UNI_LEDS;
+		_artnet = new Artnet(_artnetUdp);
+		_artnet->begin(artnetPort);
+		_artnet->setArtDmxCallback(onDmxFrame);
+	}
 }
 
 Leds::~Leds()
@@ -204,8 +205,8 @@ bool Leds::setMode(enum Modes newMode)
 		return false;
 	}
 
-  // save the last mode, just in case
-  lastMode = mode;
+	// save the last mode, just in case
+	lastMode = mode;
 	mode = newMode;
 }
 

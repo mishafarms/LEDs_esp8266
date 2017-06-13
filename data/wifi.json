@@ -1,12 +1,12 @@
 {
 	/* the %m# where # is 0-5 is to put the byte of the mac address
-     * into the string so esplights-%m4%m5 becomes esplights-9525
+     * into the string so infinity-%m4%m5 becomes esplights-9525
 	 * if your mac address is 00:13:e4:69:95:25
      * even though the ArduinoJson will ignore this comment, It is
 	 * not standard JSON and you probably should remove it
 	 */
-	"ApHostname" : "epslights-%m4%m5",
-	"ApPassword" : "deadbeef01", // if you leave out the password then it will be an open network. remove this comment
+	"ApHostname" : "infinity-%m4%m5",
+	"ApPassword" : "mirror", // if you leave out the password then it will be an open network. remove this comment
 	"WifiMulti" : 
 	[
 		{
@@ -18,5 +18,5 @@
 			"password" : "YourPassword2"
 		}
 	],
-	"mdnsHostname" : "esplights-%m4%m5"
+	"mdnsHostname" : "infinity-%m4%m5"
 }
