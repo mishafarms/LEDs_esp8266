@@ -97,6 +97,9 @@ Leds::Leds()
 
 	// create the default pixel mapping. This is a normal map 0 = 0, 1 = 1, ... 24 = 24.
 
+  #if (LED_TYPE == NEOPIXEL)
+      FastLED.addLeds<LED_TYPE, SPI_DATA>(leds, numLeds).setCorrection(TypicalLEDStrip);;
+  #else
   // add the leds, this is a little cumbersome, but it does work.
     
   switch (colorOrder_) { 
@@ -136,6 +139,7 @@ Leds::Leds()
       break;
     }    
   }
+#endif
 
   // start running and we will figure it out later.
   

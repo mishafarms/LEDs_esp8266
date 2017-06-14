@@ -16,7 +16,7 @@
 #include "FastLED.h"
 FASTLED_USING_NAMESPACE;
 
-#define LED_TYPE    DOTSTAR
+#define LED_TYPE    NEOPIXEL
 
 #define COLOR_ORDER GBR
 #define DEFAULT_NUM_LEDS 25
