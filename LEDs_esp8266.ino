@@ -424,7 +424,7 @@ void setup() {
   // for now the led config has the timezone
   
   timeClient = new NTPClient(ntpUDP, myLeds->timezone());
-  
+
   // setup the LED page
   server.on("/leds", HTTP_GET, handleLedGet);
   server.on("/leds", HTTP_PUT, handleLedPut);

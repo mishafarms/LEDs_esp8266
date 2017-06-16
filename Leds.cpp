@@ -6,6 +6,36 @@
 
 #define DBG_OUTPUT_PORT Serial
 
+// here are the maps for the leds
+
+std::vector<uint16_t> LedMap0 = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,16,21,25,30,34,38,43,47,51,56,61,65,70,74,79,84,89,94,99,103,108,114,119,124,129,134,139,144,149,154,159,164,170,175,180,184,189,194,199,204,209,214,219,224,229,234,238,242,247,252,256,261,266,270,275,280,284,288,293,298,303,308,313,318,323,328,334,338,344,349,354,359,364,370,375,380,384};
+std::vector<uint16_t> LedMap1 = {252,247,318,256,180,175,170,242,313,364,323,261,184,103,99,94,89,164,238,308,359,384,370,328,266,189,108,34,30,25,21,84,159,234,303,354,380,375,334,270,194,114,38,7,6,16,14,79,154,229,298,349,344,338,275,199,119,43,8,1,5,4,13,74,149,224,293,288,284,280,204,124,47,9,2,0,3,12,70,144,219,214,209,129,51,10,11,65,139,134,56,61};
+std::vector<uint16_t> LedMap2 = {238,303,308,242,164,234,229,298,354,359,313,247,170,89,159,154,149,224,293,349,380,384,364,318,252,175,94,21,84,79,74,70,144,219,288,344,375,370,323,256,180,99,25,16,14,13,12,65,139,214,284,338,334,328,261,184,103,30,6,5,4,3,11,61,134,209,280,275,270,266,189,108,4,7,1,0,2,10,56,129,204,199,194,114,38,8,9,51,124,119,43,47};
+std::vector<uint16_t> LedMap3 = {293,288,349,298,224,219,214,284,344,380,354,303,229,149,144,139,134,209,280,338,375,384,359,308,238,234,180,74,70,65,61,56,129,204  ,275,334,370,364,313,242,164,159,79,13,12,11,10,51,124,199,270  ,328,323,318,247,170,89,84,14,4,3,2,9,47,119,194,266,261,256,252,175,94,21,16,5,0,1,8,43,114,189,184,180,99,25,6,7,38,108,103,30,34};
+std::vector<uint16_t> LedMap4 = {280,275,338,284,209,204,199,270,334,375,344,288,214,134,129,124,119,194,266,328,370,384,380,349,293,219,139,61,56,51,47,43,114,189,261,323,364,359,354,298,224,144,65,11,10,9,8,38,108,184,256,318,313,308,303,229,149,70,12,3,2,1,7,34,103,180,252,247,242,238,234,154,74,13,4,0,5,6,30,99,175,170,164,159,79,14,16,25,94,89,84,21};
+std::vector<uint16_t> LedMap5 = {266,261,328,270,194,189,184,256,323,370,334,275,199,119,114,108,103,180,252,318,364,384,375,338,280,204,124,47,43,38,34,30,99,175,247,313,359,380,344,284,209,129,51,9,8,7,6,25,94,170,242,308,354,349,288,214,134,56,10,2,1,5,16,21,89,164,238,303,298,293,219,139,61,11,3,0,4,14,84,159,234,229,224,144,65,12,13,79,154,149,70,74};
+std::vector<uint16_t> LedMap6 = {74,70,149,154,79,13,12,65,144,224,229,234,159,84,14,4,0,3,11,61,139,219,293,298,303,238,164,89,21,16,5,1,2,10,56,134,214,288,349,354,308,242,170,94,25,6,7,8,9,51,129,209,284,344,380,359,313,247,175,99,30,34,38,43,47,124,204,280,338,375,384,364,318,252,180,103,108,114,119,199,275,334,370,323,256,184,189,194,270,328,261,266};
+std::vector<uint16_t> LedMap7 = {21,84,89,94,25,16,14,79,159,164,170,175,99,30,6,5,0,4,13,74,154,234,238,242,247,252,180,103,34,7,1,2,3,12,70,149,229,303,308,313,318,256,184,108,38,8,9,10,11,65,144,224,298,354,359,364,323,261,189,114,43,47,51,56,61,139,219,293,349,380,384,370,328,266,194,119,124,129,134,214,288,344,375,334,270,199,204,209,284,338,275,280};
+std::vector<uint16_t> LedMap8 = {34,30,103,108,38,7,6,25,99,180,184,189,114,43,8,1,0,5,16,21,94,175,252,256,261,266,194,119,47,9,2,3,4,14,84,89,170,247,318,323,328,270,199,124,51,10,11,12,13,79,159,164,242,313,364,370,334,275,204,129,56,61,65,70,74,180,234,238,308,359,384,375,338,280,209,134,139,144,149,229,303,354,380,344,284,214,219,224,298,349,288,293};
+std::vector<uint16_t> LedMap9 = {47,43,119,124,51,9,8,38,114,194,199,204,129,56,10,2,0,1,7,4,108,189,266,270,275,280,209,134,61,11,3,4,5,6,30,103,184,261,328,334,338,284,214,139,65,12,13,14,16,25,99,180,256,323,370,375,344,288,219,144,70,74,79,84,21,94,175,252,318,364,384,380,349,293,224,149,154,159,89,170,247,313,359,354,298,229,234,164,242,308,303,238};
+std::vector<uint16_t> LedMap10 = {61,56,134,139,65,11,10,51,129,209,214,219,144,70,12,3,0,2,9,47,124,204,280,284,288,293,224,149,74,13,4,5,1,8,43,119,199,275,338,344,349,298,229,154,79,14,16,6,7,38,114,194,270,334,375,380,354,303,234,159,84,21,25,30,34,108,189,266,328,370,384,359,308,238,164,89,94,99,103,184,261,323,364,313,242,170,175,180,256,318,247,252};
+std::vector<uint16_t> LedMap11 = {384,380,375,370,364,359,354,349,344,338,334,328,323,318,313,308,303,298,293,288,284,280,275,270,266,261,256,252,247,242,238,234,229,224,219,214,209,204,199,194,189,184,180,175,170,164,159,154,149,144,139,134,129,124,119,114,108,103,99,94,89,84,79,74,70,65,61,56,51,47,43,38,34,30,25,21,16,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0};
+
+std::vector<std::vector<uint16_t>> LedMaps = {LedMap0, LedMap1, LedMap2, LedMap3, LedMap4, LedMap5, LedMap6, LedMap7, LedMap8, LedMap9, LedMap10, LedMap11};
+
+std::vector<uint16_t>  Ring0 = {0};
+std::vector<uint16_t>  Ring1 = {1,2,3,4,5};
+std::vector<uint16_t>  Ring2 = {6,7,8,9,10,11,12,13,14,15};
+std::vector<uint16_t>  Ring3 = {16,17,18,19,20,21,22,23,24,25,26,27,28,29,30};
+std::vector<uint16_t>  Ring4 = {31,32,33,34,35,36,37,38,39,40,41,42,43,44,45};
+std::vector<uint16_t>  Ring5 = {46,47,48,49,50,51,52,53,54,55,56,57,58,59,60};
+std::vector<uint16_t>  Ring6 = {61,62,63,64,65,66,67,68,69,70,71,72,73,74,75};
+std::vector<uint16_t>  Ring7 = {76,77,78,79,80,81,82,83,84,85};
+std::vector<uint16_t>  Ring8 = {86,87,88,89,90};
+std::vector<uint16_t>  Ring9 = {91};
+
+std::vector<std::vector<uint16_t>> Rings = {Ring0, Ring1, Ring2, Ring3, Ring4, Ring5, Ring6, Ring7, Ring8, Ring9};
+
 String modeNames[LAST_MODE + 1] = {
 		"Stop",
 		"Color",
@@ -72,13 +102,13 @@ Leds::Leds()
   artnetWaitTime = ARTNET_WAIT_TIME;
   
   // build our vector of patterns here
-  patterns["allChristmasLights"] = &Leds::allChristmasLights;
+  patterns["pulse"] = &Leds::pulse;
   patterns["wipe"] = &Leds::wipe;
-  patterns["christmasConfetti"] = &Leds::christmasConfetti;
+//  patterns["christmasConfetti"] = &Leds::christmasConfetti;
   patterns["chase"] = &Leds::chase;
-  patterns["christmasLights"] = &Leds::christmasLights;
+//  patterns["christmasLights"] = &Leds::christmasLights;
   patterns["sweep"] = &Leds::sweep;
-  patterns["dark"] = &Leds::dark;
+//  patterns["dark"] = &Leds::dark;
 
   currentPattern = patterns.begin();
 
@@ -312,6 +342,10 @@ void Leds::ff(void)
 	if (++currentPattern == patterns.end())
 	{
 		currentPattern = patterns.begin();
+
+    // choose a new random mapping
+    
+    ledMap = LedMaps[random8(LedMaps.size())];
 	}
 
 	fill_solid(leds, numLeds, CRGB::Black);
@@ -329,6 +363,10 @@ void Leds::rew(void)
 	if (currentPattern == patterns.begin())
 	{
 		currentPattern = patterns.end();
+
+    // choose a new random mapping
+    
+    ledMap = LedMaps[random8(LedMaps.size())];
 	}
 
 	currentPattern--;
@@ -412,6 +450,7 @@ void Leds::shuffle(void)
 void Leds::blinkSimple2(void)
 {
 	static uint8_t frame = 0;
+  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
 
 	EVERY_N_MILLISECONDS( 500 )
 	{
@@ -419,15 +458,15 @@ void Leds::blinkSimple2(void)
 
 		if (frame)
 		{
-			for( x = 0 ; x < numLeds ; x++ )
+			for( x = 0 ; x < numToDo ; x++ )
 			{
 				if ( x % 2 )
 				{
-					leds[x] = CRGB::Black;
+					leds[Map(x)] = CRGB::Black;
 				}
 				else
 				{
-					leds[x] = currentRgb;
+					leds[Map(x)] = currentRgb;
 				}
 			}
 
@@ -435,15 +474,15 @@ void Leds::blinkSimple2(void)
 		}
 		else
 		{
-			for( x = 0 ; x < numLeds ; x++ )
+			for( x = 0 ; x < numToDo ; x++ )
 			{
 				if ( x % 2 )
 				{
-					leds[x] = currentRgb;
+					leds[Map(x)] = currentRgb;
 				}
 				else
 				{
-					leds[x] = CRGB::Black;
+					leds[Map(x)] = CRGB::Black;
 				}
 			}
 
@@ -491,16 +530,18 @@ void Leds::chase(void)
 {
 	// simple single led chase
 	static int pos = 0;
+  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
 
 	fill_solid(leds, numLeds, CRGB::Black);
-	leds[pos] = currentRgb;
-	pos = (pos + 1) % numLeds;
+	leds[Map(pos)] = currentRgb;
+	pos = (pos + 1) % numToDo;
 	FastLED.show();
 }
 
 void Leds::chase2()
 {
 	static int j = 0;
+  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
 
 	EVERY_N_MILLISECONDS(300) {
 		for(int x = 0 ; x < numLeds ; x++)
@@ -508,9 +549,9 @@ void Leds::chase2()
 			leds[x] = CRGB::Black;
 		}
 
-		for(int i = j ; i < numLeds ; i += num)
+		for(int i = j ; i < numToDo ; i += num)
 		{
-			leds[i] = ColorFromPalette(gPal, beatsin8(5));
+			leds[Map(i)] = ColorFromPalette(gPal, beatsin8(5));
 		}
 
 		j++;
@@ -532,8 +573,10 @@ void Leds::rainbow(void)
 
 void Leds::addGlitter( fract8 chanceOfGlitter)
 {
+  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
+
 	if( random8() < chanceOfGlitter) {
-		leds[ random16(numLeds) ] += CRGB::White;
+		leds[ Map(random16(numToDo)) ] += CRGB::White;
 	}
 }
 
@@ -547,62 +590,76 @@ void Leds::rainbowWithGlitter(void)
 void Leds::gConfetti(void)
 {
 	// random colored speckles that blink in and fade smoothly
+  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
+
 	fadeToBlackBy( leds, numLeds, 10);
-	int pos = random16(numLeds);
-	leds[pos] += CHSV( HUE_GREEN + random8(64), 200, 255);
+	int pos = random16(numToDo);
+	leds[Map(pos)] += CHSV( HUE_GREEN + random8(64), 200, 255);
 }
 
 void Leds::rConfetti(void)
 {
 	// random colored speckles that blink in and fade smoothly
+  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
+
 	fadeToBlackBy( leds, numLeds, 10);
-	int pos = random16(numLeds);
-	leds[pos] += CHSV( HUE_RED + random8(64), 200, 255);
+	int pos = random16(numToDo);
+	leds[Map(pos)] += CHSV( HUE_RED + random8(64), 200, 255);
 }
 
 void Leds::confetti(void)
 {
 	// random colored speckles that blink in and fade smoothly
+  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
+
 	fadeToBlackBy( leds, numLeds, 10);
-	int pos = random16(numLeds);
+	int pos = random16(numToDo);
 	CHSV confetti = currentHue;
 
 	confetti.h += random8(64);
 
-	leds[pos] += confetti;
+	leds[Map(pos)] += confetti;
 }
 
 void Leds::sinelon(void)
 {
 	// a colored dot sweeping back and forth, with fading trails
+  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
+
 	fadeToBlackBy( leds, numLeds, 20);
-	int pos = beatsin16(13,0,numLeds);
-	leds[pos] += ColorFromPalette(gPal, beatsin8(20));
+	int pos = beatsin16(13,0,numToDo);
+	leds[Map(pos)] += ColorFromPalette(gPal, beatsin8(20));
 }
 
 void Leds::greenlon(void)
 {
 	// a colored dot sweeping back and forth, with fading trails
+  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
+
 	fadeToBlackBy( leds, numLeds, 20);
-	int pos = beatsin16(13,0,numLeds);
-	leds[pos] += CRGB::Green;
+	int pos = beatsin16(13,0,numToDo);
+	leds[Map(pos)] += CRGB::Green;
 	addGlitter(40);
 }
 
 void Leds::redlon(void)
 {
+  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
+
 	// a colored dot sweeping back and forth, with fading trails
 	fadeToBlackBy( leds, numLeds, 20);
-	int pos = beatsin16(13,0,numLeds);
-	leds[pos] += CRGB::Red;
+	int pos = beatsin16(13,0,numToDo);
+	leds[Map(pos)] += CRGB::Red;
 	addGlitter(40);
 }
 
 void Leds::sweep(void)
 {
-	for(int i = 0 ; i < numLeds ; i++)
+  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
+
+	for(int i = 0 ; i < numToDo ; i++)
 	{
-		leds[i] = ColorFromPalette(grPal, beatsin8(5));
+		leds[Map(i)] = ColorFromPalette(grPal, beatsin8(5));
 	}
 
 	addGlitter(10);
@@ -619,29 +676,35 @@ void Leds::dark(void)
 void Leds::bpm(void)
 {
 	// colored stripes pulsing at a defined Beats-Per-Minute (BPM)
+  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
+
 	uint8_t BeatsPerMinute = 62;
 	CRGBPalette16 palette = PartyColors_p;
 	uint8_t beat = beatsin8( BeatsPerMinute, 64, 255);
-	for( int i = 0; i < numLeds; i++) { //9948
-		leds[i] = ColorFromPalette(palette, currentHue.hue + (i*2), beat-currentHue.hue + (i*10));
+	for( int i = 0; i < numToDo; i++) { //9948
+		leds[Map(i)] = ColorFromPalette(palette, currentHue.hue + (i*2), beat-currentHue.hue + (i*10));
 	}
 }
 
 void Leds::juggle(void) {
 	// eight colored dots, weaving in and out of sync with each other
+  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
+
 	fadeToBlackBy( leds, numLeds, 20);
 	byte dothue = 0;
 	for( int i = 0; i < 8; i++) {
-		leds[beatsin16(i+7,0,numLeds)] |= CHSV(dothue, 200, 255);
+		leds[Map(beatsin16(i+7,0,numToDo))] |= CHSV(dothue, 200, 255);
 		dothue += 32;
 	}
 }
 
 void Leds::christmasConfetti(void) {
 	// random colored speckles that blink in and fade smoothly
+  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
+  
 	fadeToBlackBy( leds, numLeds, 10);
-	int pos = random16(numLeds);
-	leds[pos] =  ColorFromPalette( gPal, random8(255));
+	int pos = random16(numToDo);
+	leds[Map(pos)] =  ColorFromPalette( gPal, random8(255));
 }
 
 void Leds::christmasLights(void) {
@@ -649,18 +712,19 @@ void Leds::christmasLights(void) {
 	CRGB ltColors[] = { CRGB::Red, CRGB::Green, CRGB::Blue, CRGB::Yellow };
 	CRGB color;
 	static int times = 0;
+  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
 
 	EVERY_N_MILLISECONDS(600){
-		for(int x = 0 ; x < numLeds ; x++)
+		for(int x = 0 ; x < numToDo ; x++)
 		{
-			leds[x] = CRGB::Black;
+			leds[Map(x)] = CRGB::Black;
 		}
 
 		color = ltColors[times % (sizeof(ltColors) / sizeof(color))];
 
-		for( x = 0 + (times % 4) ; x < numLeds ; x += 4)
+		for( x = 0 + (times % 4) ; x < numToDo ; x += 4)
 		{
-			leds[x] = color;
+			leds[Map(x)] = color;
 		}
 
 		times++;
@@ -671,13 +735,14 @@ void Leds::allChristmasLights(void) {
 	int x;
 	CRGB ltColors[] = { CRGB::Red, CRGB::Green, CRGB::Blue, CRGB::Yellow };
 	static int times = 0;
+  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
 
 	EVERY_N_MILLISECONDS(600){
-		for( x = 0 ; x < numLeds; x += 8)
+		for( x = 0 ; x < numToDo ; x += 8)
 		{
 			for(int y = 0 ; y < 8 ; y++)
 			{
-				leds[x + y] = ltColors[(times + (x/8)) % (sizeof(ltColors) / sizeof(CRGB))];
+				leds[Map(x + y)] = ltColors[(times + (x/8)) % (sizeof(ltColors) / sizeof(CRGB))];
 			}
 		}
 
@@ -689,14 +754,57 @@ void Leds::wipe(void) {
 	int x;
 	static CRGB color;
 	static int wiping = 0;
-
-	if (wiping >= numLeds)
+  int numToWipe = ledMap.size() ? ledMap.size() : numLeds;
+  
+	if (wiping >= numToWipe)
 	{
 		wiping = 0;
 		color = ColorFromPalette( gPal, random8(255));
 	}
 
-	leds[wiping++] = color;
+	leds[Map(wiping++)] = color;
+}
+
+void Leds::pulse(void)
+{
+  static uint8_t ringNum = 0;
+  std::vector<uint16_t>::iterator ringIt;
+
+  EVERY_N_MILLISECONDS(100)
+  {
+    // clear the entire strip
+    fill_solid(leds, numLeds, CRGB::Black); 
+
+    // we want to turn on all the lights in the current ring
+
+    for(ringIt = Rings[ringNum].begin() ; ringIt < Rings[ringNum].end() ; ringIt++)
+    {
+      leds[Map(*ringIt)] = currentHue;
+    }
+
+    ringNum++;
+    if (ringNum >= Rings.size())
+    {
+      ringNum = 0;
+    }
+    
+    FastLED.show();
+  }
+}
+
+/**@brief Function set a mapping on the LED strip.
+ *
+ * @details This function will be called to allow mapping of LEDS to other LEDS.
+ * it is going to be used now to map the 91 vertices of the geodesic dome.
+ * @param[in] pointer to the map and the number of entries in the map
+ */
+
+bool Leds::setLedMap(std::vector <uint16_t> *newMap)
+{
+  // we need to replace our map with the new map
+
+  ledMap = *newMap;
+  return true;
 }
 
 /**@brief Function show a test pattern on the LED strip.
@@ -1280,10 +1388,13 @@ void onDmxFrame(uint16_t universe, uint16_t length, uint8_t sequence, uint8_t* d
   // read universe and put into the right part of the display buffer
   for (int i = 0; i < maxLeds; i++)
   {
+    uint16_t numToDo = myLeds->mapSize() ? myLeds->mapSize() : myLeds->numLeds;
+    
     int led = i + (universe - startUniverse) * NUM_UNI_LEDS;
-    if (led < myLeds->numLeds)
+    
+    if (led < numToDo)
     {
-      myLeds->leds[i] = CRGB(data[i * 3], data[i * 3 + 1], data[i * 3 + 2]);
+      myLeds->leds[myLeds->Map(i)] = CRGB(data[i * 3], data[i * 3 + 1], data[i * 3 + 2]);
     }
   }
 

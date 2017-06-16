@@ -37,6 +37,8 @@ FASTLED_USING_NAMESPACE;
 
 #define ARTNET_WAIT_TIME (60 * 1000) // 1 minute in milliseconds
 
+#define MIN(x, y) (((x) > (y)) ? (y) : (x))
+
 enum Modes {
     STOP_MODE,
     COLOR_MODE,
@@ -61,7 +63,7 @@ class Leds {
   CRGB currentRgb;
   CHSV currentHue;
   // the next 2 variables are for a matrix
-  std::vector <uint8_t> pixelMap;
+  //std::vector <uint8_t> pixelMap;
   uint8_t diagDirection;
   uint8_t shuffleCnt;
   uint8_t num;
@@ -74,6 +76,13 @@ class Leds {
   int artnetWaitTime;
   uint16_t artnetPort;
   int _startUniverse;
+
+  // there are times when we want to map one index to an LED at a different index MAPPING
+
+  std::vector <uint16_t> ledMap;
+  
+//  uint16_t ledMap[MAX_NUM_LEDS];
+//  uint16_t ledMapSize;  //how many actual maps entries can we index
 
 public:
   CRGB leds[MAX_NUM_LEDS];
@@ -131,6 +140,7 @@ public:
   void christmasLights(void);
   void allChristmasLights(void);
   void wipe(void);
+  void pulse(void);
   
   void ledTest(void);
   void loop(int);
@@ -138,6 +148,24 @@ public:
   bool readConfig(void);
   bool writeConfig(void);
   int timezone(void);
+  bool setLedMap(std::vector <uint16_t> *newMap);
+ 
+  uint16_t mapSize(void)
+  {
+    return ledMap.size();
+  }
+  
+  uint16_t Map(uint16_t index)
+  {
+    if (ledMap.size() == 0)
+    {
+      return MIN(index, numLeds);
+    }
+    else
+    {
+      return MIN(ledMap[index], numLeds);
+    }
+  }
 };
 #endif
 
