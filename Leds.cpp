@@ -125,13 +125,14 @@ Leds::Leds()
 
 	num = 3;
 
+  ledMap = LedMaps[0];
+  
 	// create the default pixel mapping. This is a normal map 0 = 0, 1 = 1, ... 24 = 24.
 
-  #if (LED_TYPE == NEOPIXEL)
-      FastLED.addLeds<LED_TYPE, SPI_DATA>(leds, numLeds).setCorrection(TypicalLEDStrip);;
+  #if 1
+      FastLED.addLeds<LED_TYPE, SPI_DATA, COLOR_ORDER>(leds, numLeds).setCorrection(TypicalLEDStrip);;
   #else
   // add the leds, this is a little cumbersome, but it does work.
-    
   switch (colorOrder_) { 
     case RGB:
     {
@@ -501,8 +502,19 @@ void Leds::blinkSimple2(void)
  */
 void Leds::simpleColor(void)
 {
-	// go all blue till we get a command or timeout
-	fill_solid(leds, numLeds, currentRgb);
+	// go all one color
+
+  if (ledMap.size())
+  {
+    for( int x = 0 ; x < ledMap.size() ; x++)
+    {
+      leds[Map(x)] = currentRgb;
+    }
+  }
+  else
+  {
+	  fill_solid(leds, numLeds, currentRgb);
+  }
 	FastLED.show();
 }
 
@@ -516,7 +528,18 @@ void Leds::hueColor(void)
 {
 	CRGB rgb = currentHue;
 
-	fill_solid(leds, numLeds, rgb);
+  if (ledMap.size())
+  {
+    for( int x = 0 ; x < ledMap.size() ; x++)
+    {
+      leds[Map(x)] = rgb;
+    }
+  }
+  else
+  {
+  	fill_solid(leds, numLeds, rgb);
+  }
+  
 	FastLED.show();
 }
 
@@ -532,7 +555,10 @@ void Leds::chase(void)
 	static int pos = 0;
   uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
 
+  // clear the strip
+  
 	fill_solid(leds, numLeds, CRGB::Black);
+ 
 	leds[Map(pos)] = currentRgb;
 	pos = (pos + 1) % numToDo;
 	FastLED.show();
@@ -544,10 +570,9 @@ void Leds::chase2()
   uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
 
 	EVERY_N_MILLISECONDS(300) {
-		for(int x = 0 ; x < numLeds ; x++)
-		{
-			leds[x] = CRGB::Black;
-		}
+    // clear the strip
+  
+    fill_solid(leds, numLeds, CRGB::Black);
 
 		for(int i = j ; i < numToDo ; i += num)
 		{
@@ -567,7 +592,24 @@ void Leds::chase2()
  */
 void Leds::rainbow(void)
 {
-	fill_rainbow(leds, numLeds, currentHue.hue, 7);
+  if (ledMap.size())
+  {
+    // here I have to play a little game.
+
+    CRGB tempLeds[MAX_NUM_LEDS];
+    fill_rainbow(tempLeds, ledMap.size(), currentHue.hue, 7);
+
+    // so now I have all the colors I need I just need to put them into the mapped positions
+
+    for( int x = 0 ; x < ledMap.size() ; x++)
+    {
+      leds[Map(x)] = tempLeds[x];
+    }
+  }
+  else
+  {  
+	  fill_rainbow(leds, numLeds, currentHue.hue, 7);
+  }
 	FastLED.show();
 }
 
@@ -779,10 +821,12 @@ void Leds::pulse(void)
 
     for(ringIt = Rings[ringNum].begin() ; ringIt < Rings[ringNum].end() ; ringIt++)
     {
-      leds[Map(*ringIt)] = currentHue;
+//      Serial.printf("ring %d ringIt = %d\n", ringNum, *ringIt);
+      leds[Map(*ringIt)] = currentRgb;
     }
 
     ringNum++;
+    
     if (ringNum >= Rings.size())
     {
       ringNum = 0;
@@ -917,52 +961,52 @@ void Leds::loop(int nowTime)
 
 	switch(mode)
 	{
-	case PATTERN_MODE:
-	case PATTERN_CYCLE_MODE:
-	{
-		// call the current pattern
-
-		((*this).*currentPattern->second)();
-
-		// do some periodic updates
-		EVERY_N_MILLISECONDS( hueCycleTime )
-		{
-			currentHue.hue++;
-			currentRgb = currentHue;
-		} // slowly cycle the "base color" through the rainbow
-
-		if (mode == PATTERN_CYCLE_MODE)
-		{
-			EVERY_N_SECONDS( patCycleTime )
-      {
-				ff(); // every 5 minutes change the mode
-      }
-		}
-
-		break;
-	}
-
-	case COLOR_MODE:
-	{
-		simpleColor();
-		break;  
-	}
-
-  case ARTNET_MODE:
-  {
-    // if we are in artnet mode and haven't seen a packet in a while, then change back to the old mode
-    if ((artNetRecved + artnetWaitTime) < millis())
-    {
-      mode = lastMode;
-    }
-    break;
-  }
+  	case PATTERN_MODE:
+  	case PATTERN_CYCLE_MODE:
+  	{
+  		// call the current pattern
   
-	case STOP_MODE:
-	default:
-		// do nothing for now
-		break;
-	}
+  		((*this).*currentPattern->second)();
+  
+  		// do some periodic updates
+  		EVERY_N_MILLISECONDS( hueCycleTime )
+  		{
+  			currentHue.hue++;
+  			currentRgb = currentHue;
+  		} // slowly cycle the "base color" through the rainbow
+  
+  		if (mode == PATTERN_CYCLE_MODE)
+  		{
+  			EVERY_N_SECONDS( patCycleTime )
+        {
+  				ff(); // every 5 minutes change the mode
+        }
+  		}
+  
+  		break;
+  	}
+  
+  	case COLOR_MODE:
+  	{
+  		simpleColor();
+  		break;  
+  	}
+  
+    case ARTNET_MODE:
+    {
+      // if we are in artnet mode and haven't seen a packet in a while, then change back to the old mode
+      if ((artNetRecved + artnetWaitTime) < millis())
+      {
+        mode = lastMode;
+      }
+      break;
+    }
+    
+  	case STOP_MODE:
+  	default:
+  		// do nothing for now
+  		break;
+  	}
 }
 
 #if 0

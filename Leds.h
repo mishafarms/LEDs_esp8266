@@ -16,9 +16,9 @@
 #include "FastLED.h"
 FASTLED_USING_NAMESPACE;
 
-#define LED_TYPE    NEOPIXEL
+#define LED_TYPE  WS2811
 
-#define COLOR_ORDER GBR
+#define COLOR_ORDER GRB
 #define DEFAULT_NUM_LEDS 25
 #define MAX_NUM_LEDS 480
 
@@ -157,14 +157,19 @@ public:
   
   uint16_t Map(uint16_t index)
   {
+    uint16_t newIndex;
+    
     if (ledMap.size() == 0)
     {
-      return MIN(index, numLeds);
+      newIndex = MIN(index, numLeds);
     }
     else
     {
-      return MIN(ledMap[index], numLeds);
+      newIndex = MIN(ledMap[index], numLeds);
     }
+
+//    Serial.printf("In %d out %d\n", index, newIndex);
+    return newIndex;
   }
 };
 #endif
