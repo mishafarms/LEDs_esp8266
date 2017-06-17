@@ -7,7 +7,7 @@
   "patCycleTime": 60,
   "color": "#b63900",
   "colorOrder": "RGB",
-  "numLeds": 25,
+  "numLeds": 385,
   "artnetEnabled": 1,
   "artnetWaitTime": 60,
   "artnetPort": 0,
