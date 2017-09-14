@@ -16,7 +16,7 @@
 #include "FastLED.h"
 FASTLED_USING_NAMESPACE;
 
-#define LED_TYPE  WS2811
+#define LED_TYPE  APA102
 
 #define COLOR_ORDER GRB
 #define DEFAULT_NUM_LEDS 25
@@ -38,6 +38,10 @@ FASTLED_USING_NAMESPACE;
 #define ARTNET_WAIT_TIME (60 * 1000) // 1 minute in milliseconds
 
 #define MIN(x, y) (((x) > (y)) ? (y) : (x))
+
+/* undefine this if you are not using maps */
+
+// #define MAPS 1
 
 enum Modes {
     STOP_MODE,
@@ -140,7 +144,10 @@ public:
   void christmasLights(void);
   void allChristmasLights(void);
   void wipe(void);
+#if defined(MAPS)
   void pulse(void);
+#endif
+  void july4(void);
   
   void ledTest(void);
   void loop(int);

@@ -6,6 +6,7 @@
 
 #define DBG_OUTPUT_PORT Serial
 
+#if defined(MAPS)
 // here are the maps for the leds
 
 std::vector<uint16_t> LedMap0 = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,16,21,25,30,34,38,43,47,51,56,61,65,70,74,79,84,89,94,99,103,108,114,119,124,129,134,139,144,149,154,159,164,170,175,180,184,189,194,199,204,209,214,219,224,229,234,238,242,247,252,256,261,266,270,275,280,284,288,293,298,303,308,313,318,323,328,334,338,344,349,354,359,364,370,375,380,384};
@@ -35,14 +36,15 @@ std::vector<uint16_t>  Ring8 = {86,87,88,89,90};
 std::vector<uint16_t>  Ring9 = {91};
 
 std::vector<std::vector<uint16_t>> Rings = {Ring0, Ring1, Ring2, Ring3, Ring4, Ring5, Ring6, Ring7, Ring8, Ring9};
+#endif
 
 String modeNames[LAST_MODE + 1] = {
-		"Stop",
-		"Color",
-		"Pattern",
-		"Pattern_Cycle",
-    "Artnet",
-		"Last"
+	"Stop",
+	"Color",
+	"Pattern",
+	"Pattern_Cycle",
+	"Artnet",
+	"Last"
 };
 
 extern Leds *myLeds;
@@ -82,116 +84,121 @@ Leds::Leds()
 
 	startTime = FIVE_PM * MINUTES_PER_HOUR;    // by default on at 5pm
 	stopTime = ONE_AM * MINUTES_PER_HOUR;      // by default off at 1am
-  timeZone_ = (PST_TIME * SECONDS_PER_HOUR);
+	timeZone_ = (PST_TIME * SECONDS_PER_HOUR);
 
 	hueCycleTime = 20; // this is milliseconds
 	patCycleTime = 60; // this is in seconds
 
-  numLeds = DEFAULT_NUM_LEDS;
-  
+	numLeds = DEFAULT_NUM_LEDS;
+
 	// set to cycle through the patterns
 
 	mode = PATTERN_CYCLE_MODE;
 
-  // start with the default color order
+	// start with the default color order
 
-  colorOrder_ = COLOR_ORDER;
+	colorOrder_ = COLOR_ORDER;
 
-  // default the artnetWaitTime, it may get overwritten in the config file
+	// default the artnetWaitTime, it may get overwritten in the config file
 
-  artnetWaitTime = ARTNET_WAIT_TIME;
-  
-  // build our vector of patterns here
-  patterns["pulse"] = &Leds::pulse;
-  patterns["wipe"] = &Leds::wipe;
-//  patterns["christmasConfetti"] = &Leds::christmasConfetti;
-  patterns["chase"] = &Leds::chase;
-//  patterns["christmasLights"] = &Leds::christmasLights;
-  patterns["sweep"] = &Leds::sweep;
-//  patterns["dark"] = &Leds::dark;
+	artnetWaitTime = ARTNET_WAIT_TIME;
 
-  currentPattern = patterns.begin();
+	// build our vector of patterns here
+	patterns["july4"] = &Leds::july4;
+#if defined(MAPS)
+	patterns["pulse"] = &Leds::pulse;
+#endif
+	patterns["wipe"] = &Leds::wipe;
+	//  patterns["christmasConfetti"] = &Leds::christmasConfetti;
+	patterns["chase"] = &Leds::chase;
+	//  patterns["christmasLights"] = &Leds::christmasLights;
+	patterns["sweep"] = &Leds::sweep;
+	//  patterns["dark"] = &Leds::dark;
 
-  // create some palettes
-  
-  gPal = CRGBPalette16( CRGB::Black, CRGB::Red, CRGB::Green, CRGB::Blue);
-  grPal = CRGBPalette16( CRGB::Black, CRGB::Red, CRGB::Green, CRGB::Green);
+	currentPattern = patterns.begin();
 
-  // read the config for the leds and then we can uses all the info
+	// create some palettes
+
+	gPal = CRGBPalette16( CRGB::Black, CRGB::Red, CRGB::Green, CRGB::Blue);
+	grPal = CRGBPalette16( CRGB::Black, CRGB::Red, CRGB::Green, CRGB::Green);
+
+	// read the config for the leds and then we can uses all the info
 
 	readConfig();
- 
+
 	shuffleCnt = 0;
 
 	num = 3;
 
-  ledMap = LedMaps[0];
-  
-	// create the default pixel mapping. This is a normal map 0 = 0, 1 = 1, ... 24 = 24.
-
-  #if 1
-      FastLED.addLeds<LED_TYPE, SPI_DATA, COLOR_ORDER>(leds, numLeds).setCorrection(TypicalLEDStrip);;
-  #else
-  // add the leds, this is a little cumbersome, but it does work.
-  switch (colorOrder_) { 
-    case RGB:
-    {
-      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, RGB>(leds, numLeds).setCorrection(TypicalLEDStrip);;
-      break;
-    }
-    case RBG:
-    {
-      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, RBG>(leds, numLeds).setCorrection(TypicalLEDStrip);;
-      break;
-    }
-    case GRB:
-    {
-      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, GRB>(leds, numLeds).setCorrection(TypicalLEDStrip);;
-      break;
-    }
-    case GBR:
-    {
-      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, GBR>(leds, numLeds).setCorrection(TypicalLEDStrip);;
-      break;
-    }
-    case BRG:
-    {
-      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, BRG>(leds, numLeds).setCorrection(TypicalLEDStrip);;
-      break;
-    }
-    case BGR:
-    {
-      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, BGR>(leds, numLeds).setCorrection(TypicalLEDStrip);;
-      break;
-    }
-    default:
-    {
-      FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, RGB>(leds, numLeds).setCorrection(TypicalLEDStrip);;
-      break;
-    }    
-  }
+#if defined(MAPS)
+	ledMap = LedMaps[0];
 #endif
 
-  // start running and we will figure it out later.
-  
+	// create the default pixel mapping. This is a normal map 0 = 0, 1 = 1, ... 24 = 24.
+
+#if defined(MAPS) // this is really not a maps, thing is it a ws2811 thins
+	FastLED.addLeds<LED_TYPE, SPI_DATA, COLOR_ORDER>(leds, numLeds).setCorrection(TypicalLEDStrip);;
+#else
+	// add the leds, this is a little cumbersome, but it does work.
+	switch (colorOrder_) { 
+	case RGB:
+		{
+			FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, RGB>(leds, numLeds).setCorrection(TypicalLEDStrip);;
+			break;
+		}
+	case RBG:
+		{
+			FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, RBG>(leds, numLeds).setCorrection(TypicalLEDStrip);;
+			break;
+		}
+	case GRB:
+		{
+			FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, GRB>(leds, numLeds).setCorrection(TypicalLEDStrip);;
+			break;
+		}
+	case GBR:
+		{
+			FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, GBR>(leds, numLeds).setCorrection(TypicalLEDStrip);;
+			break;
+		}
+	case BRG:
+		{
+			FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, BRG>(leds, numLeds).setCorrection(TypicalLEDStrip);;
+			break;
+		}
+	case BGR:
+		{
+			FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, BGR>(leds, numLeds).setCorrection(TypicalLEDStrip);;
+			break;
+		}
+	default:
+		{
+			FastLED.addLeds<LED_TYPE, SPI_DATA, SPI_CLOCK, RGB>(leds, numLeds).setCorrection(TypicalLEDStrip);;
+			break;
+		}    
+	}
+#endif
+
+	// start running and we will figure it out later.
+
 	running = true;
 
-  if (mode == COLOR_MODE)
-  {
-    // this will start things
-    loop(-1);
-  }
+	if (mode == COLOR_MODE)
+	{
+		// this will start things
+		loop(-1);
+	}
 
-  // look and see if we should open the artnet port
+	// look and see if we should open the artnet port
 
-  if (artnetEnabled)
-  {
-    startUniverse = _startUniverse;
-    maxUniverses = (numLeds + (NUM_UNI_LEDS - 1))/ NUM_UNI_LEDS;
-    _artnet = new Artnet(_artnetUdp);
-    _artnet->begin(artnetPort);
-    _artnet->setArtDmxCallback(onDmxFrame);
-  }
+	if (artnetEnabled)
+	{
+		startUniverse = _startUniverse;
+		maxUniverses = (numLeds + (NUM_UNI_LEDS - 1))/ NUM_UNI_LEDS;
+		_artnet = new Artnet(_artnetUdp);
+		_artnet->begin(artnetPort);
+		_artnet->setArtDmxCallback(onDmxFrame);
+	}
 }
 
 Leds::~Leds()
@@ -239,8 +246,8 @@ bool Leds::setMode(enum Modes newMode)
 		return false;
 	}
 
-  // save the last mode, just in case
-  lastMode = mode;
+	// save the last mode, just in case
+	lastMode = mode;
 	mode = newMode;
 }
 
@@ -265,11 +272,11 @@ int Leds::getStopTime(void)
 }
 
 /**@brief Function for doing something with the leds when we connect.
- *
- * @details This function will be called when we are connected to by a device.
- *
- * @param[in] void * p_data, uint16_t length of p_data (both unused)
- */
+*
+* @details This function will be called when we are connected to by a device.
+*
+* @param[in] void * p_data, uint16_t length of p_data (both unused)
+*/
 
 void Leds::connected(void *p_data, uint16_t length)
 {
@@ -284,11 +291,11 @@ void Leds::connected(void *p_data, uint16_t length)
 }
 
 /**@brief Function for doing something with the leds when we disconnect.
- *
- * @details This function will be called when we are disconnected from a device.
- *
- * @param[in] void
- */
+*
+* @details This function will be called when we are disconnected from a device.
+*
+* @param[in] void
+*/
 
 void Leds::disconnected(void)
 {
@@ -300,11 +307,11 @@ void Leds::disconnected(void)
 }
 
 /**@brief Function for doing something with the leds when we disconnect.
- *
- * @details This function will be called when we are disconnected from a device.
- *
- * @param[in] void
- */
+*
+* @details This function will be called when we are disconnected from a device.
+*
+* @param[in] void
+*/
 
 void Leds::sleepMode(void)
 {
@@ -332,11 +339,11 @@ void Leds::sleepMode(void)
 }
 
 /**@brief Function for moving the led mode forward.
- *
- * @details This function will be called from the string_com table.
- *
- * @param[in] void
- */
+*
+* @details This function will be called from the string_com table.
+*
+* @param[in] void
+*/
 
 void Leds::ff(void)
 { 
@@ -344,20 +351,22 @@ void Leds::ff(void)
 	{
 		currentPattern = patterns.begin();
 
-    // choose a new random mapping
-    
-    ledMap = LedMaps[random8(LedMaps.size())];
+#if defined(MAPS)
+		// choose a new random mapping
+		
+		ledMap = LedMaps[random8(LedMaps.size())];
+#endif
 	}
 
 	fill_solid(leds, numLeds, CRGB::Black);
 }
 
 /**@brief Function for moving the led mode backward.
- *
- * @details This function will be called from the string_com table.
- *
- * @param[in] void
- */
+*
+* @details This function will be called from the string_com table.
+*
+* @param[in] void
+*/
 
 void Leds::rew(void)
 {
@@ -365,9 +374,11 @@ void Leds::rew(void)
 	{
 		currentPattern = patterns.end();
 
-    // choose a new random mapping
-    
-    ledMap = LedMaps[random8(LedMaps.size())];
+#if defined(MAPS)
+		// choose a new random mapping
+		
+		ledMap = LedMaps[random8(LedMaps.size())];
+#endif
 	}
 
 	currentPattern--;
@@ -377,33 +388,33 @@ void Leds::rew(void)
 }
 
 /**@brief Function for doing something with the leds when we receive a play command.
- *
- * @details This function will be called when e receive a matching string see string_com[] above.
- *
- * @param[in] void
- */
+*
+* @details This function will be called when e receive a matching string see string_com[] above.
+*
+* @param[in] void
+*/
 void Leds::play(void)
 {
 	running = 1;
 }
 
 /**@brief Function for doing something with the leds when we receive a play command.
- *
- * @details This function will be called when e receive a matching string see string_com[] above.
- *
- * @param[in] void
- */
+*
+* @details This function will be called when e receive a matching string see string_com[] above.
+*
+* @param[in] void
+*/
 void Leds::pause(void)
 {
 	running = 0;
 }
 
 /**@brief Function for doing something with the leds when we receive a play command.
- *
- * @details This function will be called when e receive a matching string see string_com[] above.
- *
- * @param[in] void
- */
+*
+* @details This function will be called when e receive a matching string see string_com[] above.
+*
+* @param[in] void
+*/
 void Leds::stop(void)
 {
 	running = 0;
@@ -412,11 +423,11 @@ void Leds::stop(void)
 }
 
 /**@brief Function for changing the color to a new color. this will move the color by 7
- *
- * @details This function will be called from the string_com table.
- *
- * @param[in] void
- */
+*
+* @details This function will be called from the string_com table.
+*
+* @param[in] void
+*/
 
 void Leds::colorDown(void)
 {
@@ -425,11 +436,11 @@ void Leds::colorDown(void)
 }
 
 /**@brief Function for changing the color to a new color. this will move the color by 7
- *
- * @details This function will be called from the string_com table.
- *
- * @param[in] void
- */
+*
+* @details This function will be called from the string_com table.
+*
+* @param[in] void
+*/
 
 void Leds::colorUp(void)
 {
@@ -443,15 +454,15 @@ void Leds::shuffle(void)
 }
 
 /**@brief Function for each pattern, this one blinks 2 lights.
- *
- * @details This function will be called tick when it is the active patterns.
- *
- * @param[in] void
- */
+*
+* @details This function will be called tick when it is the active patterns.
+*
+* @param[in] void
+*/
 void Leds::blinkSimple2(void)
 {
 	static uint8_t frame = 0;
-  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
+	uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
 
 	EVERY_N_MILLISECONDS( 500 )
 	{
@@ -495,70 +506,70 @@ void Leds::blinkSimple2(void)
 }
 
 /**@brief Function for each pattern, this one lights the leds all one color.
- *
- * @details This function will be called tick when it is the active patterns.
- *
- * @param[in] void
- */
+*
+* @details This function will be called tick when it is the active patterns.
+*
+* @param[in] void
+*/
 void Leds::simpleColor(void)
 {
 	// go all one color
 
-  if (ledMap.size())
-  {
-    for( int x = 0 ; x < ledMap.size() ; x++)
-    {
-      leds[Map(x)] = currentRgb;
-    }
-  }
-  else
-  {
-	  fill_solid(leds, numLeds, currentRgb);
-  }
+	if (ledMap.size())
+	{
+		for( int x = 0 ; x < ledMap.size() ; x++)
+		{
+			leds[Map(x)] = currentRgb;
+		}
+	}
+	else
+	{
+		fill_solid(leds, numLeds, currentRgb);
+	}
 	FastLED.show();
 }
 
 /**@brief Function for each pattern, this one blinks 2 lights.
- *
- * @details This function will be called tick when it is the active patterns.
- *
- * @param[in] void
- */
+*
+* @details This function will be called tick when it is the active patterns.
+*
+* @param[in] void
+*/
 void Leds::hueColor(void)
 {
 	CRGB rgb = currentHue;
 
-  if (ledMap.size())
-  {
-    for( int x = 0 ; x < ledMap.size() ; x++)
-    {
-      leds[Map(x)] = rgb;
-    }
-  }
-  else
-  {
-  	fill_solid(leds, numLeds, rgb);
-  }
-  
+	if (ledMap.size())
+	{
+		for( int x = 0 ; x < ledMap.size() ; x++)
+		{
+			leds[Map(x)] = rgb;
+		}
+	}
+	else
+	{
+		fill_solid(leds, numLeds, rgb);
+	}
+
 	FastLED.show();
 }
 
 /**@brief Function for each pattern, this one is a 1 light chase.
- *
- * @details This function will be called tick when it is the active patterns.
- *
- * @param[in] void
- */
+*
+* @details This function will be called tick when it is the active patterns.
+*
+* @param[in] void
+*/
 void Leds::chase(void)
 {
 	// simple single led chase
 	static int pos = 0;
-  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
+	uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
 
-  // clear the strip
-  
+	// clear the strip
+
 	fill_solid(leds, numLeds, CRGB::Black);
- 
+
 	leds[Map(pos)] = currentRgb;
 	pos = (pos + 1) % numToDo;
 	FastLED.show();
@@ -567,12 +578,12 @@ void Leds::chase(void)
 void Leds::chase2()
 {
 	static int j = 0;
-  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
+	uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
 
 	EVERY_N_MILLISECONDS(300) {
-    // clear the strip
-  
-    fill_solid(leds, numLeds, CRGB::Black);
+		// clear the strip
+
+		fill_solid(leds, numLeds, CRGB::Black);
 
 		for(int i = j ; i < numToDo ; i += num)
 		{
@@ -585,37 +596,37 @@ void Leds::chase2()
 }
 
 /**@brief Function for each pattern, this one shows a rainbow that cycles.
- *
- * @details This function will be called tick when it is the active pattern.
- *
- * @param[in] void
- */
+*
+* @details This function will be called tick when it is the active pattern.
+*
+* @param[in] void
+*/
 void Leds::rainbow(void)
 {
-  if (ledMap.size())
-  {
-    // here I have to play a little game.
+	if (ledMap.size())
+	{
+		// here I have to play a little game.
 
-    CRGB tempLeds[MAX_NUM_LEDS];
-    fill_rainbow(tempLeds, ledMap.size(), currentHue.hue, 7);
+		CRGB tempLeds[MAX_NUM_LEDS];
+		fill_rainbow(tempLeds, ledMap.size(), currentHue.hue, 7);
 
-    // so now I have all the colors I need I just need to put them into the mapped positions
+		// so now I have all the colors I need I just need to put them into the mapped positions
 
-    for( int x = 0 ; x < ledMap.size() ; x++)
-    {
-      leds[Map(x)] = tempLeds[x];
-    }
-  }
-  else
-  {  
-	  fill_rainbow(leds, numLeds, currentHue.hue, 7);
-  }
+		for( int x = 0 ; x < ledMap.size() ; x++)
+		{
+			leds[Map(x)] = tempLeds[x];
+		}
+	}
+	else
+	{  
+		fill_rainbow(leds, numLeds, currentHue.hue, 7);
+	}
 	FastLED.show();
 }
 
 void Leds::addGlitter( fract8 chanceOfGlitter)
 {
-  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
+	uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
 
 	if( random8() < chanceOfGlitter) {
 		leds[ Map(random16(numToDo)) ] += CRGB::White;
@@ -632,7 +643,7 @@ void Leds::rainbowWithGlitter(void)
 void Leds::gConfetti(void)
 {
 	// random colored speckles that blink in and fade smoothly
-  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
+	uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
 
 	fadeToBlackBy( leds, numLeds, 10);
 	int pos = random16(numToDo);
@@ -642,7 +653,7 @@ void Leds::gConfetti(void)
 void Leds::rConfetti(void)
 {
 	// random colored speckles that blink in and fade smoothly
-  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
+	uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
 
 	fadeToBlackBy( leds, numLeds, 10);
 	int pos = random16(numToDo);
@@ -652,7 +663,7 @@ void Leds::rConfetti(void)
 void Leds::confetti(void)
 {
 	// random colored speckles that blink in and fade smoothly
-  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
+	uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
 
 	fadeToBlackBy( leds, numLeds, 10);
 	int pos = random16(numToDo);
@@ -666,7 +677,7 @@ void Leds::confetti(void)
 void Leds::sinelon(void)
 {
 	// a colored dot sweeping back and forth, with fading trails
-  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
+	uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
 
 	fadeToBlackBy( leds, numLeds, 20);
 	int pos = beatsin16(13,0,numToDo);
@@ -676,7 +687,7 @@ void Leds::sinelon(void)
 void Leds::greenlon(void)
 {
 	// a colored dot sweeping back and forth, with fading trails
-  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
+	uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
 
 	fadeToBlackBy( leds, numLeds, 20);
 	int pos = beatsin16(13,0,numToDo);
@@ -686,7 +697,7 @@ void Leds::greenlon(void)
 
 void Leds::redlon(void)
 {
-  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
+	uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
 
 	// a colored dot sweeping back and forth, with fading trails
 	fadeToBlackBy( leds, numLeds, 20);
@@ -697,7 +708,7 @@ void Leds::redlon(void)
 
 void Leds::sweep(void)
 {
-  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
+	uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
 
 	for(int i = 0 ; i < numToDo ; i++)
 	{
@@ -718,7 +729,7 @@ void Leds::dark(void)
 void Leds::bpm(void)
 {
 	// colored stripes pulsing at a defined Beats-Per-Minute (BPM)
-  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
+	uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
 
 	uint8_t BeatsPerMinute = 62;
 	CRGBPalette16 palette = PartyColors_p;
@@ -730,7 +741,7 @@ void Leds::bpm(void)
 
 void Leds::juggle(void) {
 	// eight colored dots, weaving in and out of sync with each other
-  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
+	uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
 
 	fadeToBlackBy( leds, numLeds, 20);
 	byte dothue = 0;
@@ -742,8 +753,8 @@ void Leds::juggle(void) {
 
 void Leds::christmasConfetti(void) {
 	// random colored speckles that blink in and fade smoothly
-  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
-  
+	uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
+
 	fadeToBlackBy( leds, numLeds, 10);
 	int pos = random16(numToDo);
 	leds[Map(pos)] =  ColorFromPalette( gPal, random8(255));
@@ -754,7 +765,7 @@ void Leds::christmasLights(void) {
 	CRGB ltColors[] = { CRGB::Red, CRGB::Green, CRGB::Blue, CRGB::Yellow };
 	CRGB color;
 	static int times = 0;
-  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
+	uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
 
 	EVERY_N_MILLISECONDS(600){
 		for(int x = 0 ; x < numToDo ; x++)
@@ -777,7 +788,7 @@ void Leds::allChristmasLights(void) {
 	int x;
 	CRGB ltColors[] = { CRGB::Red, CRGB::Green, CRGB::Blue, CRGB::Yellow };
 	static int times = 0;
-  uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
+	uint16_t numToDo = ledMap.size() ? ledMap.size() : numLeds;
 
 	EVERY_N_MILLISECONDS(600){
 		for( x = 0 ; x < numToDo ; x += 8)
@@ -796,8 +807,8 @@ void Leds::wipe(void) {
 	int x;
 	static CRGB color;
 	static int wiping = 0;
-  int numToWipe = ledMap.size() ? ledMap.size() : numLeds;
-  
+	int numToWipe = ledMap.size() ? ledMap.size() : numLeds;
+
 	if (wiping >= numToWipe)
 	{
 		wiping = 0;
@@ -807,56 +818,124 @@ void Leds::wipe(void) {
 	leds[Map(wiping++)] = color;
 }
 
+#if defined(MAPS)
 void Leds::pulse(void)
 {
-  static uint8_t ringNum = 0;
-  std::vector<uint16_t>::iterator ringIt;
+	static uint8_t ringNum = 0;
+	std::vector<uint16_t>::iterator ringIt;
 
-  EVERY_N_MILLISECONDS(100)
-  {
-    // clear the entire strip
-    fill_solid(leds, numLeds, CRGB::Black); 
+	EVERY_N_MILLISECONDS(100)
+	{
+		// clear the entire strip
+		fill_solid(leds, numLeds, CRGB::Black); 
 
-    // we want to turn on all the lights in the current ring
+		// we want to turn on all the lights in the current ring
 
-    for(ringIt = Rings[ringNum].begin() ; ringIt < Rings[ringNum].end() ; ringIt++)
-    {
-//      Serial.printf("ring %d ringIt = %d\n", ringNum, *ringIt);
-      leds[Map(*ringIt)] = currentRgb;
-    }
+		for(ringIt = Rings[ringNum].begin() ; ringIt < Rings[ringNum].end() ; ringIt++)
+		{
+			//      Serial.printf("ring %d ringIt = %d\n", ringNum, *ringIt);
+			leds[Map(*ringIt)] = currentRgb;
+		}
 
-    ringNum++;
-    
-    if (ringNum >= Rings.size())
-    {
-      ringNum = 0;
-    }
-    
-    FastLED.show();
-  }
+		ringNum++;
+		
+		if (ringNum >= Rings.size())
+		{
+			ringNum = 0;
+		}
+		
+		FastLED.show();
+	}
 }
+#endif
 
+/**@brief Function run through red, white, blue  LEDS
+*
+* @details This function will move one led from start to finish and then will
+* turn leds on from the finish to the start and then change color and start again
+* @param[in] none;
+*/
+void Leds::july4(void)
+{
+	static bool chase = true;
+	static int index = 0;
+  static int colorIndex = 0;
+	CRGB colors[3] = { CRGB::Red, CRGB::White, CRGB::Blue };
+ 
+	int numToChase = ledMap.size() ? ledMap.size() : numLeds;
+
+  EVERY_N_MILLISECONDS(5)
+	{
+//    Serial.printf("chase = %d index = %d numToChase = %d\n", chase, index, numToChase);
+    
+		if (chase)
+		{
+			if (index >= numToChase)
+			{
+				/* we have to turn around */
+				chase = false;
+				index = numToChase - 1;
+				leds[Map(index--)] = colors[colorIndex];
+			}
+			else
+			{
+				// we are still moving up, clear the last location and set the next
+				
+				if (index)
+				{
+					leds[Map(index - 1)] = CRGB::Black;
+				}
+       
+				leds[Map(index++)] = colors[colorIndex];
+			}
+		}
+		else
+		{
+			// we are not doing the chase therfore we are doing the wipe
+			
+			if (index <= 0)
+			{
+				// we have finished change color and to chase again also clear leds
+       
+				chase = true;
+				index = 0;
+        fill_solid(leds, numLeds, CRGB::Black); 
+             
+        // get the new color
+        
+        colorIndex = ++colorIndex % 3;
+				leds[Map(index++)] = colors[colorIndex];
+			}
+			else
+			{
+				leds[Map(index--)] = colors[colorIndex];
+			}
+		}
+	}
+
+  FastLED.show();
+} 
 /**@brief Function set a mapping on the LED strip.
- *
- * @details This function will be called to allow mapping of LEDS to other LEDS.
- * it is going to be used now to map the 91 vertices of the geodesic dome.
- * @param[in] pointer to the map and the number of entries in the map
- */
+*
+* @details This function will be called to allow mapping of LEDS to other LEDS.
+* it is going to be used now to map the 91 vertices of the geodesic dome.
+* @param[in] pointer to the map and the number of entries in the map
+*/
 
 bool Leds::setLedMap(std::vector <uint16_t> *newMap)
 {
-  // we need to replace our map with the new map
+	// we need to replace our map with the new map
 
-  ledMap = *newMap;
-  return true;
+	ledMap = *newMap;
+	return true;
 }
 
 /**@brief Function show a test pattern on the LED strip.
- *
- * @details This function will be called to show a test on the LEDS.
- *
- * @param[in] void
- */
+*
+* @details This function will be called to show a test on the LEDS.
+*
+* @param[in] void
+*/
 
 void Leds::ledTest(void) {
 	// flash leds
@@ -906,36 +985,36 @@ bool Leds::setPattern(String newPattern)
 }
 
 /**@brief Function for doing all the fastled stuff. this happens every 100ms or so.
- *
- * @details This function will be called each fastled tick.
- *
- * @param[in] void
- */
+*
+* @details This function will be called each fastled tick.
+*
+* @param[in] void
+*/
 
 void Leds::loop(int nowTime)
 {
-  static bool _inited = false;
+	static bool _inited = false;
 
-  if (!_inited && (nowTime > 0)) {
-    // we should figure out if we are running or not, we start running so only stop us if needed
+	if (!_inited && (nowTime > 0)) {
+		// we should figure out if we are running or not, we start running so only stop us if needed
 
-    if ((startTime >= 0) && (stopTime >= 0) && (startTime != stopTime)) {
-      if (startTime > stopTime) {
-        if ((nowTime >= stopTime) && (nowTime < startTime)) {
-          // we are not running
-          stop();
-        }
-      }
-      else if ((nowTime < startTime) || (nowTime >= stopTime)) {
-        stop();
-      }
-    }
-    
-    // don't do this again
-    
-    _inited = true;
-  }
-  
+		if ((startTime >= 0) && (stopTime >= 0) && (startTime != stopTime)) {
+			if (startTime > stopTime) {
+				if ((nowTime >= stopTime) && (nowTime < startTime)) {
+					// we are not running
+					stop();
+				}
+			}
+			else if ((nowTime < startTime) || (nowTime >= stopTime)) {
+				stop();
+			}
+		}
+		
+		// don't do this again
+		
+		_inited = true;
+	}
+
 	// only if there are non-negative non-matching times
 	if (_inited && ((startTime >= 0) && (stopTime >= 0) && (startTime != stopTime)))
 	{
@@ -949,11 +1028,11 @@ void Leds::loop(int nowTime)
 		}
 	}
 
-  if (artnetEnabled)
-  {
-    _artnet->read();
-  }
-  
+	if (artnetEnabled)
+	{
+		_artnet->read();
+	}
+
 	if (!running)
 	{
 		return;  
@@ -961,61 +1040,61 @@ void Leds::loop(int nowTime)
 
 	switch(mode)
 	{
-  	case PATTERN_MODE:
-  	case PATTERN_CYCLE_MODE:
-  	{
-  		// call the current pattern
-  
-  		((*this).*currentPattern->second)();
-  
-  		// do some periodic updates
-  		EVERY_N_MILLISECONDS( hueCycleTime )
-  		{
-  			currentHue.hue++;
-  			currentRgb = currentHue;
-  		} // slowly cycle the "base color" through the rainbow
-  
-  		if (mode == PATTERN_CYCLE_MODE)
-  		{
-  			EVERY_N_SECONDS( patCycleTime )
-        {
-  				ff(); // every 5 minutes change the mode
-        }
-  		}
-  
-  		break;
-  	}
-  
-  	case COLOR_MODE:
-  	{
-  		simpleColor();
-  		break;  
-  	}
-  
-    case ARTNET_MODE:
-    {
-      // if we are in artnet mode and haven't seen a packet in a while, then change back to the old mode
-      if ((artNetRecved + artnetWaitTime) < millis())
-      {
-        mode = lastMode;
-      }
-      break;
-    }
-    
-  	case STOP_MODE:
-  	default:
-  		// do nothing for now
-  		break;
-  	}
+	case PATTERN_MODE:
+	case PATTERN_CYCLE_MODE:
+		{
+			// call the current pattern
+
+			((*this).*currentPattern->second)();
+
+			// do some periodic updates
+			EVERY_N_MILLISECONDS( hueCycleTime )
+			{
+				currentHue.hue++;
+				currentRgb = currentHue;
+			} // slowly cycle the "base color" through the rainbow
+
+			if (mode == PATTERN_CYCLE_MODE)
+			{
+				EVERY_N_SECONDS( patCycleTime )
+				{
+					ff(); // every 5 minutes change the mode
+				}
+			}
+
+			break;
+		}
+
+	case COLOR_MODE:
+		{
+			simpleColor();
+			break;  
+		}
+
+	case ARTNET_MODE:
+		{
+			// if we are in artnet mode and haven't seen a packet in a while, then change back to the old mode
+			if ((artNetRecved + artnetWaitTime) < millis())
+			{
+				mode = lastMode;
+			}
+			break;
+		}
+		
+	case STOP_MODE:
+	default:
+		// do nothing for now
+		break;
+	}
 }
 
 #if 0
 /**@brief Function for parsing the commands to see what to do.
- *
- * @details This function will be called whenever a change to the mode is needed.
- *
- * @param[in]   char const *command, uint8_t length of command string
- */
+*
+* @details This function will be called whenever a change to the mode is needed.
+*
+* @param[in]   char const *command, uint8_t length of command string
+*/
 
 void Leds::processCommands(char const *command, uint16_t len)
 {
@@ -1030,67 +1109,67 @@ void Leds::processCommands(char const *command, uint16_t len)
 #endif
 
 int Leds::timezone(void) {
-  return(timeZone_);
+	return(timeZone_);
 }
 
 static EOrder strToColorOrder(String colorOrder)
 {
-  if (colorOrder == "RBG")
-  {
-    return RBG;  
-  }
+	if (colorOrder == "RBG")
+	{
+		return RBG;  
+	}
 
-  if (colorOrder == "GRB")
-  {
-    return GRB;  
-  }
- 
-  if (colorOrder == "GBR")
-  {
-    return GBR;  
-  }
+	if (colorOrder == "GRB")
+	{
+		return GRB;  
+	}
 
-  if (colorOrder == "BRG")
-  {
-    return BRG;  
-  }
- 
-  if (colorOrder == "BGR")
-  {
-    return BGR;  
-  }
-  
-  return RGB;
+	if (colorOrder == "GBR")
+	{
+		return GBR;  
+	}
+
+	if (colorOrder == "BRG")
+	{
+		return BRG;  
+	}
+
+	if (colorOrder == "BGR")
+	{
+		return BGR;  
+	}
+
+	return RGB;
 }
 
 static String colorOrderToStr(EOrder colorOrder)
 {
-  switch (colorOrder)
-  {
-    case RGB:
-      return("RGB");
-      break;
-    case RBG:
-      return("RBG");
-      break;
-    case GRB:
-      return("GRB");
-      break;
-    case GBR:
-      return("GBR");
-      break;
-    case BRG:
-      return("BRG");
-      break;
-    case BGR:
-      return("BGR");
-      break;
-    default:
-      return("RGB");
-      break;
-  }
+	switch (colorOrder)
+	{
+	case RGB:
+		return("RGB");
+		break;
+	case RBG:
+		return("RBG");
+		break;
+	case GRB:
+		return("GRB");
+		break;
+	case GBR:
+		return("GBR");
+		break;
+	case BRG:
+		return("BRG");
+		break;
+	case BGR:
+		return("BGR");
+		break;
+	default:
+		return("RGB");
+		break;
+	}
 
-  return("");
+	return("");
 }
 
 static const char *configFilename = "/led.json";
@@ -1198,11 +1277,11 @@ bool Leds::readConfig(void) {
 				}
 			}
 
-      if (ledJson.containsKey("timeZone"))
-      {
-        timeZone_ = (int) (ledJson["timeZone"]) * 3600;
-      }
-      
+			if (ledJson.containsKey("timeZone"))
+			{
+				timeZone_ = (int) (ledJson["timeZone"]) * 3600;
+			}
+			
 			if (ledJson.containsKey("hueCycleTime"))
 			{
 				int tm;
@@ -1261,51 +1340,51 @@ bool Leds::readConfig(void) {
 				}
 			}
 
-      if (ledJson.containsKey("colorOrder"))
-      {
-        Serial.print("We got a colorOrder (");
-        Serial.print(ledJson["colorOrder"].asString());
-        Serial.println(")");
-        
-        colorOrder_ = strToColorOrder(ledJson["colorOrder"].asString());
-      }
-      
-      if (ledJson.containsKey("numLeds"))
-      {
-        // read it in
+			if (ledJson.containsKey("colorOrder"))
+			{
+				Serial.print("We got a colorOrder (");
+				Serial.print(ledJson["colorOrder"].asString());
+				Serial.println(")");
+				
+				colorOrder_ = strToColorOrder(ledJson["colorOrder"].asString());
+			}
+			
+			if (ledJson.containsKey("numLeds"))
+			{
+				// read it in
 
-        numLeds = ledJson["numLeds"];
-      }
- 
-      if (ledJson.containsKey("artnetEnabled"))
-      {
-        // read it in
+				numLeds = ledJson["numLeds"];
+			}
 
-        artnetEnabled = (bool) ledJson["artnetEnabled"];
-      }
-      
-      if (ledJson.containsKey("artnetWaitTime"))
-      {
-        // read it in
+			if (ledJson.containsKey("artnetEnabled"))
+			{
+				// read it in
 
-        artnetWaitTime = (int) (ledJson["artnetWaitTime"]) * 1000;
-      }
-      
-      if (ledJson.containsKey("artnetPort"))
-      {
-        // read it in, but it is an IP port and can really only be 16Bits
+				artnetEnabled = (bool) ledJson["artnetEnabled"];
+			}
+			
+			if (ledJson.containsKey("artnetWaitTime"))
+			{
+				// read it in
 
-        artnetPort = (uint16_t) ledJson["artnetPort"];
-      }
-      
-      if (ledJson.containsKey("startUniverse"))
-      {
-        _startUniverse = ledJson["startUniverse"];
-      }
-      
+				artnetWaitTime = (int) (ledJson["artnetWaitTime"]) * 1000;
+			}
+			
+			if (ledJson.containsKey("artnetPort"))
+			{
+				// read it in, but it is an IP port and can really only be 16Bits
+
+				artnetPort = (uint16_t) ledJson["artnetPort"];
+			}
+			
+			if (ledJson.containsKey("startUniverse"))
+			{
+				_startUniverse = ledJson["startUniverse"];
+			}
+			
 			// we parsed it and stored it in the passed in struct, return true
-      
-      DBG_OUTPUT_PORT.println("Successfully read config file ");
+			
+			DBG_OUTPUT_PORT.println("Successfully read config file ");
 
 			status = true;
 			goto cleanup;
@@ -1319,7 +1398,7 @@ bool Leds::readConfig(void) {
 		}
 	}
 
-	cleanup:
+cleanup:
 	configFile.close();
 
 	free(configJson);
@@ -1335,7 +1414,7 @@ bool Leds::writeConfig(void) {
 	ledJson["mode"] = String(modeNames[mode]);
 	ledJson["startTime"] = startTime;
 	ledJson["stopTime"] = stopTime;
-  ledJson["timeZone"] = timeZone_ / 3600;
+	ledJson["timeZone"] = timeZone_ / 3600;
 	ledJson["hueCycleTime"] = hueCycleTime;
 	ledJson["patCycleTime"] = patCycleTime;\
 
@@ -1346,14 +1425,14 @@ bool Leds::writeConfig(void) {
 
 	ledJson["color"] = String(tmpBuf);
 
-  ledJson["colorOrder"] = colorOrderToStr(colorOrder_);
-  ledJson["numLeds"] = (int) numLeds;
+	ledJson["colorOrder"] = colorOrderToStr(colorOrder_);
+	ledJson["numLeds"] = (int) numLeds;
 
-  ledJson["artnetEnabled"] = (int) artnetEnabled;
-  ledJson["artnetWaitTime"] = (int) artnetWaitTime / 1000;
-  ledJson["artnetPort"] = artnetPort;
-  ledJson["startUniverse"] = _startUniverse;
-    
+	ledJson["artnetEnabled"] = (int) artnetEnabled;
+	ledJson["artnetWaitTime"] = (int) artnetWaitTime / 1000;
+	ledJson["artnetPort"] = artnetPort;
+	ledJson["startUniverse"] = _startUniverse;
+	
 	ledJson.prettyPrintTo(Serial);
 	Serial.println("");
 
@@ -1378,10 +1457,10 @@ bool Leds::writeConfig(void) {
 	ledJson.prettyPrintTo(configFile);
 	configFile.close();
 
-  // get rid of any old backups
+	// get rid of any old backups
 
-  SPIFFS.remove(configBackFilename);
-  
+	SPIFFS.remove(configBackFilename);
+
 	// now I want to move the old file out of the way
 
 	SPIFFS.rename(configFilename, configBackFilename);
@@ -1393,60 +1472,60 @@ bool Leds::writeConfig(void) {
 
 void onDmxFrame(uint16_t universe, uint16_t length, uint8_t sequence, uint8_t* data)
 {
-  int sendFrame = 1;
-  
-  // if we are not in ARTNET mode then we should be
+	int sendFrame = 1;
 
-  if (myLeds->getMode() != "Artnet")
-  {
-    myLeds->setMode(ARTNET_MODE);
-  }
+	// if we are not in ARTNET mode then we should be
 
-  artNetRecved = millis();  // keep track of the last time we were being controlled
-  
-  // set brightness of the whole strip
-  if (universe == 15)
-  {
-    FastLED.setBrightness(data[0]);
-    FastLED.show();
-  }
+	if (myLeds->getMode() != "Artnet")
+	{
+		myLeds->setMode(ARTNET_MODE);
+	}
 
-  // Store which universe has got in
-  if ((universe - startUniverse) < maxUniverses)
-  {
-    universesReceived[universe - startUniverse] = 1;
-  }
-  
-  for (int i = 0 ; i < maxUniverses ; i++)
-  {
-    if (universesReceived[i] == 0)
-    {
-      //Serial.println("Broke");
-      sendFrame = 0;
-      break;
-    }
-  }
+	artNetRecved = millis();  // keep track of the last time we were being controlled
 
-  int maxLeds = ((length / 3) < NUM_UNI_LEDS) ? (length / 3) : NUM_UNI_LEDS;
+	// set brightness of the whole strip
+	if (universe == 15)
+	{
+		FastLED.setBrightness(data[0]);
+		FastLED.show();
+	}
 
-  // read universe and put into the right part of the display buffer
-  for (int i = 0; i < maxLeds; i++)
-  {
-    uint16_t numToDo = myLeds->mapSize() ? myLeds->mapSize() : myLeds->numLeds;
-    
-    int led = i + (universe - startUniverse) * NUM_UNI_LEDS;
-    
-    if (led < numToDo)
-    {
-      myLeds->leds[myLeds->Map(i)] = CRGB(data[i * 3], data[i * 3 + 1], data[i * 3 + 2]);
-    }
-  }
+	// Store which universe has got in
+	if ((universe - startUniverse) < maxUniverses)
+	{
+		universesReceived[universe - startUniverse] = 1;
+	}
 
-  if (sendFrame)
-  {
-    FastLED.show();
-    // Reset universeReceived to 0
-    memset(universesReceived, 0, maxUniverses);
-  }
+	for (int i = 0 ; i < maxUniverses ; i++)
+	{
+		if (universesReceived[i] == 0)
+		{
+			//Serial.println("Broke");
+			sendFrame = 0;
+			break;
+		}
+	}
+
+	int maxLeds = ((length / 3) < NUM_UNI_LEDS) ? (length / 3) : NUM_UNI_LEDS;
+
+	// read universe and put into the right part of the display buffer
+	for (int i = 0; i < maxLeds; i++)
+	{
+		uint16_t numToDo = myLeds->mapSize() ? myLeds->mapSize() : myLeds->numLeds;
+		
+		int led = i + (universe - startUniverse) * NUM_UNI_LEDS;
+		
+		if (led < numToDo)
+		{
+			myLeds->leds[myLeds->Map(i)] = CRGB(data[i * 3], data[i * 3 + 1], data[i * 3 + 2]);
+		}
+	}
+
+	if (sendFrame)
+	{
+		FastLED.show();
+		// Reset universeReceived to 0
+		memset(universesReceived, 0, maxUniverses);
+	}
 }
 
